@@ -1,6 +1,6 @@
 # Leavers_Process365
 
-Converts a leavers mailbox to shared, removes the licence, asks if you want to:
+Converts a leavers mailbox to shareded, removes the licence, asks if you want to:
     1. Add An out of office
     2. Add any full access permissions
     3. Remove the account from the GAL
