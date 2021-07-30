@@ -194,14 +194,14 @@ function removeLicences {
 
 
 
-Write-Warning "You'll need to request $ufLicence be removed. If that's not a friendly name you understand, reference: https://docs.microsoft.com/en-us/azure/active-directory/enterprise-users/licensing-service-plan-reference" 
+    Write-Warning "You'll need to request $ufLicence be removed. If that's not a friendly name you understand, reference: https://docs.microsoft.com/en-us/azure/active-directory/enterprise-users/licensing-service-plan-reference" 
 
-pause
+    pause
 
-(get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId |
-foreach{
-    Set-MsolUserLicense -UserPrincipalName $upn -RemoveLicenses $_
-}
+    (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId |
+    foreach{
+        Set-MsolUserLicense -UserPrincipalName $upn -RemoveLicenses $_
+    }
 
 }
 
