@@ -1,4 +1,4 @@
-﻿####################################
+﻿#####################################
 ## Author: James Tarran // Techary ##
 #####################################
 
@@ -26,8 +26,6 @@ exit
 
 
 # ---------------------- USED FUNCTIONS ----------------------
-
-# Connects to AzureAD, MSonline, and exchange Online mgmt. Tests to see if the modules exist first, if not downloads them.
 
 function connect-365 {
 
@@ -71,132 +69,128 @@ function connect-365 {
 
             }
 
-if (Get-Module -ListAvailable -Name ExchangeOnlineManagement) {
-    write-host " "
-    write-host "Exchange online Management exists"
-} 
-else {
-    Write-host "Exchange Online Management module does not exist. Please ensure powershell is running as admin. Attempting to download..."
-    Get-ExchangeOnlineManagement
-}
+    if (Get-Module -ListAvailable -Name ExchangeOnlineManagement) {
+        write-host " "
+        write-host "Exchange online Management exists"
+    } 
+    else {
+        Write-host "Exchange Online Management module does not exist. Please ensure powershell is running as admin. Attempting to download..."
+        Get-ExchangeOnlineManagement
+    }
 
 
-if (Get-Module -ListAvailable -Name MSOnline) {
-    write-host "MSOnline exists"
-} 
-else {
-    Write-host "MSOnline module does not exist. Please ensure powershell is running as admin. Attempting to download..."
-    Get-MSOnline
-}
+    if (Get-Module -ListAvailable -Name MSOnline) {
+        write-host "MSOnline exists"
+    } 
+    else {
+        Write-host "MSOnline module does not exist. Please ensure powershell is running as admin. Attempting to download..."
+        Get-MSOnline
+    }
 
 
-if (Get-Module -ListAvailable -Name AzureAD) {
-    write-host "AzureAD exists"
-} 
-else {
-    Write-host "AzureAD module does not exist. Please ensure powershell is running as admin. Attempting to download..."
-    Get-AzureAD
-}
+    if (Get-Module -ListAvailable -Name AzureAD) {
+        write-host "AzureAD exists"
+    } 
+    else {
+        Write-host "AzureAD module does not exist. Please ensure powershell is running as admin. Attempting to download..."
+        Get-AzureAD
+    }
 
 invoke-mfaConnection
 
 }
 
-# Queries the user the input the UPN of the account they want the script run against. Checks that the user exists, if so continues. If not, loops back to input the UPN again. 
-
 function get-upn {
 
- $global:upn = read-host "Input UPN"
+    $global:upn = read-host "Input UPN"
 
- if (Get-MsolUser -UserPrincipalName $upn -ErrorAction SilentlyContinue) {Write-host "User found..."
- $global:upn
- }
+    if (Get-MsolUser -UserPrincipalName $upn -ErrorAction SilentlyContinue) {Write-host "User found..."
+     $global:upn
+    }
 
-else {write-host "User not found, try again" 
-    get-upn
+    else {write-host "User not found, try again" 
+        get-upn
 }
 
     }
 
-# Removes all assigned licences from the user with the inputted UPN. Bunch of untidy 'IF's to convert the licence name given by the module to something we're more familiar with. Warns the user that they'll need to remove the output licence name from the tennat. Prompts to continue.
-
 function removeLicences {
 
-$AssignedLicences = (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId
+    $AssignedLicences = (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId
 
-$longTennant = (Get-MsolDomain | Where-Object {$_.isInitial}).name
-$tennant = $longTennant -replace "\..*",""
+    $longTennant = (Get-MsolDomain | Where-Object {$_.isInitial}).name
+    $tennant = $longTennant -replace "\..*",""
 
-if ($AssignedLicences -like "$tennant" + ":" + "ENTERPRISEPACK")
-{
-    $UFlicence = "Office E3"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "ENTERPRISEPACK")
+    {
+        $UFlicence = "Office E3"
+    }
 
 
-if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGESTANDARD")
-{
-    $UFlicence = "Exchange Online P1"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGESTANDARD")
+    {
+        $UFlicence = "Exchange Online P1"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGEENTERPRISE")
-{
-    $UFlicence = "Exchange Online P2"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGEENTERPRISE")
+    {
+        $UFlicence = "Exchange Online P2"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGEESSENTIALS")
-{
-    $UFlicence = "Exchange Online Essentials"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGEESSENTIALS")
+    {
+        $UFlicence = "Exchange Online Essentials"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS")
-{
-    $UFlicence = "365 Apps for business"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS")
+    {
+        $UFlicence = "365 Apps for business"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS")
-{
-    $UFlicence = "365 apps for business"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS")
+    {
+        $UFlicence = "365 apps for business"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "OFFICESUBSCRIPTION")
-{
-    $UFlicence = "365 Apps for enterprise"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "OFFICESUBSCRIPTION")
+    {
+        $UFlicence = "365 Apps for enterprise"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS_ESSENTIALS")
-{
-    $UFlicence = "365 business basic"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS_ESSENTIALS")
+    {
+        $UFlicence = "365 business basic"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS_ESSENTIALS")
-{
-    $UFlicence = "365 Business Basic"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS_ESSENTIALS")
+    {
+        $UFlicence = "365 Business Basic"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS_PREMIUM")
-{
-    $UFlicence = "365 business standard"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS_PREMIUM")
+    {
+        $UFlicence = "365 business standard"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS_PREMIUM")
-{
-    $UFlicence = "365 business standard"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS_PREMIUM")
+    {
+        $UFlicence = "365 business standard"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "SPB")
-{
-    $UFlicence = "365 business premium"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "SPB")
+    {
+        $UFlicence = "365 business premium"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "SPE_E3")
-{
-    $UFlicence = "365 E3"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "SPE_E3")
+    {
+        $UFlicence = "365 E3"
+    }
 
-if ($AssignedLicences -like "$tennant" + ":" + "SPE_E5")
-{
-    $UFlicence = "365 E5"
-}
+    if ($AssignedLicences -like "$tennant" + ":" + "SPE_E5")
+    {
+        $UFlicence = "365 E5"
+    }
 
 
 
@@ -210,8 +204,6 @@ foreach{
 }
 
 }
-
-# Queries the user if they want the UPN removed the GAL, so they don't appear in the 'To' field. 
 
 function Remove-GAL {
 
@@ -244,8 +236,6 @@ function Remove-GAL {
 
 }
 
-# Lists the distribution groups that the account is part of, and queries whether the user wants the account to be removed from them. 
-
 function remove-distributionGroups{
 
     cls
@@ -268,7 +258,7 @@ function remove-distributionGroups{
         Switch ($RemoveDistri)
         {
             Y {  ForEach ($item in $DistributionGroupsList) {
-                    Remove-DistributionGroupMember -Identity $item.DisplayName –Member $upn –BypassSecurityGroupManagerCheck -Confirm:$false
+                    Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress –Member $upn –BypassSecurityGroupManagerCheck -Confirm:$false
                     Write-host "Successfully removed"
                 
                                             }
@@ -281,8 +271,6 @@ function remove-distributionGroups{
         }
             until ($RemoveDistri -eq 'y' -or $RemoveDistri -eq 'n') 
 }
-
-# Queries the user if they want to add an auto reply to the UPN's mailbox. Also prints a lovely ASCII dog if they type 'dog'.S
         
 function Add-Autoreply {
     Do { cls
@@ -313,8 +301,6 @@ function Add-Autoreply {
         }
         until ($AutoReply -eq 'y' -or $AutoReply -eq 'n' -or $AutoReply -eq 'Dog')
 }
-
-# Queries the user if they want anyone to have full access to the UPN's mailbox. 
 
 function Add-MailboxPermissions{
     Do { cls
@@ -351,8 +337,6 @@ function Add-MailboxPermissions{
         }
         until ($AutoReply -eq 'y' -or $AutoReply -eq 'n')
 }
-
-# Adds a countdown time for updating the modules in "connect-365"
 
 function CountDown() {
     param($timeSpan)
