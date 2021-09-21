@@ -27,6 +27,7 @@ exit
 
 # ---------------------- USED FUNCTIONS ----------------------
 
+# Prints 'Techary' in ASCII
 function print-TecharyLogo {
         
     $logo = "
@@ -44,6 +45,8 @@ write-host -ForegroundColor Green $logo
 
 }
 
+# Checks to see if AzureAD, MSOnline, and Exchangeonelinemanagement are installed. 
+# If not, installs them. Then connects to 365 online
 function connect-365 {
 
     function invoke-mfaConnection{
@@ -116,7 +119,8 @@ function connect-365 {
 invoke-mfaConnection
 
 }
-
+# If the UPN is not specified as a parameter, asks for it here.
+# Then checks if the user exists in 365. 
 function get-upn {
 
     $global:upn = read-host "Input UPN"
@@ -131,6 +135,8 @@ function get-upn {
 
     }
 
+# Removes licences and converts the string ID to something we're more familiar with.
+# Then writes a warning that this licence will need to be removed from the 365 portal. 
 function removeLicences {
 
     $AssignedLicences = (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId
@@ -222,6 +228,7 @@ function removeLicences {
 
 }
 
+# Removes UPN from global address list. 
 function Remove-GAL {
 
         Do { cls
@@ -255,6 +262,7 @@ function Remove-GAL {
 
 }
 
+# Lists all distri's and prompts to remove UPN from them or not
 function remove-distributionGroups{
 
     cls
@@ -292,7 +300,8 @@ function remove-distributionGroups{
         }
             until ($RemoveDistri -eq 'y' -or $RemoveDistri -eq 'n') 
 }
-        
+
+# Prompts to add an auto response or not
 function Add-Autoreply {
     Do { cls
 
@@ -325,6 +334,7 @@ function Add-Autoreply {
         until ($AutoReply -eq 'y' -or $AutoReply -eq 'n' -or $AutoReply -eq 'Dog')
 }
 
+# Prompts to add mailbox permissions or not
 function Add-MailboxPermissions{
     Do { cls
 
@@ -363,6 +373,7 @@ function Add-MailboxPermissions{
         until ($AutoReply -eq 'y' -or $AutoReply -eq 'n')
 }
 
+# Adds a feature to call '...' when waiting
 function CountDown() {
     param($timeSpan)
 
