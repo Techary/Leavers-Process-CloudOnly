@@ -51,7 +51,7 @@ function connect-365 {
 
     function invoke-mfaConnection{
 
-       Connect-ExchangeOnline
+        Connect-ExchangeOnline
 
         Import-Module AzureAD
 
@@ -141,83 +141,38 @@ function removeLicences {
 
     $AssignedLicences = (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId
 
-    $longTennant = (Get-MsolDomain | Where-Object {$_.isInitial}).name
-    $tennant = $longTennant -replace "\..*",""
+    Invoke-WebRequest -uri https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv -outfile .\licences.csv | Out-Null
+    $licences = import-csv .\licences.csv
+    remove-item .\licences.csv -Force
 
-    if ($AssignedLicences -like "$tennant" + ":" + "ENTERPRISEPACK")
-    {
-        $UFlicence = "Office E3"
-    }
+    [System.Collections.ArrayList]$UFLicences = @()
 
+    foreach ($Assignedlicence in $Assignedlicences)
+        {
 
-    if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGESTANDARD")
-    {
-        $UFlicence = "Exchange Online P1"
-    }
+            $Assignedlicence = $Assignedlicence.Split(':')[-1]
 
-    if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGEENTERPRISE")
-    {
-        $UFlicence = "Exchange Online P2"
-    }
+            foreach ($licence in $licences)
+                {
 
-    if ($AssignedLicences -like "$tennant" + ":" + "EXCHANGEESSENTIALS")
-    {
-        $UFlicence = "Exchange Online Essentials"
-    }
+                    if ($Assignedlicence -like $licence."String_ id")
+                        {
 
-    if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS")
-    {
-        $UFlicence = "365 Apps for business"
-    }
+                            if($UFLicences -notcontains $licence.Product_Display_name)
+                                {
 
-    if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS")
-    {
-        $UFlicence = "365 apps for business"
-    }
+                                    $UFLicences = $UFLicences += $licence.Product_Display_name
+                                    
+                                }
 
-    if ($AssignedLicences -like "$tennant" + ":" + "OFFICESUBSCRIPTION")
-    {
-        $UFlicence = "365 Apps for enterprise"
-    }
+                        }
 
-    if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS_ESSENTIALS")
-    {
-        $UFlicence = "365 business basic"
-    }
+                }
 
-    if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS_ESSENTIALS")
-    {
-        $UFlicence = "365 Business Basic"
-    }
+        }
 
-    if ($AssignedLicences -like "$tennant" + ":" + "O365_BUSINESS_PREMIUM")
-    {
-        $UFlicence = "365 business standard"
-    }
-
-    if ($AssignedLicences -like "$tennant" + ":" + "SMB_BUSINESS_PREMIUM")
-    {
-        $UFlicence = "365 business standard"
-    }
-
-    if ($AssignedLicences -like "$tennant" + ":" + "SPB")
-    {
-        $UFlicence = "365 business premium"
-    }
-
-    if ($AssignedLicences -like "$tennant" + ":" + "SPE_E3")
-    {
-        $UFlicence = "365 E3"
-    }
-
-    if ($AssignedLicences -like "$tennant" + ":" + "SPE_E5")
-    {
-        $UFlicence = "365 E5"
-    }
-
-
-
-    Write-Warning "You'll need to request $ufLicence be removed. If that's not a friendly name you understand, reference: https://docs.microsoft.com/en-us/azure/active-directory/enterprise-users/licensing-service-plan-reference" 
+    Write-Warning "The following licence(s) will be removed from the user. Please remove from the 365 tenant:"
+    $UFLicences
 
     pause
 
