@@ -125,7 +125,7 @@ function get-upn {
 
     $global:upn = read-host "Input UPN"
 
-    if (Get-MsolUser -UserPrincipalName $upn -ErrorAction SilentlyContinue) {Write-host "User found..."
+    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue) {Write-host "User found..."
      $global:upn
     }
 
@@ -139,7 +139,7 @@ function get-upn {
 # Then writes a warning that this licence will need to be removed from the 365 portal. 
 function removeLicences {
 
-    $AssignedLicences = (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId
+    $AssignedLicences = (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId
 
     Invoke-WebRequest -uri https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv -outfile .\licences.csv | Out-Null
     $licences = import-csv .\licences.csv
@@ -176,9 +176,9 @@ function removeLicences {
 
     pause
 
-    (get-MsolUser -UserPrincipalName $upn).licenses.AccountSkuId |
+    (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId |
     foreach{
-        Set-MsolUserLicense -UserPrincipalName $upn -RemoveLicenses $_
+        Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_
     }
 
 }
