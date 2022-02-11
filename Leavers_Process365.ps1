@@ -171,11 +171,6 @@ function removeLicences {
 
         }
 
-    Write-Warning "The following licence(s) will be removed from the user. Please remove from the 365 tenant:"
-    $UFLicences
-
-    pause
-
     (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId |
     foreach{
         Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_
@@ -194,8 +189,8 @@ function Remove-GAL {
         Write-host "** Remove from GAL  **"
         Write-Host "**********************"
         
-            $MailboxPermission = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
-            Switch ($mailboxPermission)
+            $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
+            Switch ($script:hideFromGAL )
             {
                 Y { Set-Mailbox -Identity $upn -HiddenFromAddressListsEnabled $true
 
@@ -213,7 +208,7 @@ function Remove-GAL {
                 Default { "You didn't enter an expect response, you idiot." }
             }
         }
-        until ($AutoReply -eq 'y' -or $AutoReply -eq 'n')
+        until ($script:hideFromGAL  -eq 'y' -or $script:hideFromGAL  -eq 'n')
 
 }
 
@@ -238,8 +233,8 @@ function remove-distributionGroups{
     $DistributionGroupsList | ft
 
     Do {
-        $RemoveDistri = Read-Host "Do you want to remove $upn from all distribution groups ( y / n )?"
-        Switch ($RemoveDistri)
+        $script:removeDisitri = Read-Host "Do you want to remove $upn from all distribution groups ( y / n )?"
+        Switch ($script:removeDisitri)
         {
             Y {  ForEach ($item in $DistributionGroupsList) {
                     Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress –Member $upn –BypassSecurityGroupManagerCheck -Confirm:$false
@@ -253,7 +248,7 @@ function remove-distributionGroups{
             N { Add-Autoreply }
             }
         }
-            until ($RemoveDistri -eq 'y' -or $RemoveDistri -eq 'n') 
+            until ($script:removeDisitri -eq 'y' -or $script:removeDisitri -eq 'n') 
 }
 
 # Prompts to add an auto response or not
@@ -266,8 +261,8 @@ function Add-Autoreply {
         Write-host "** Autoreply **"
         Write-host "***************"
         
-        $AutoReply = Read-Host "Do you want to add an auto-reply to $upn's mailbox? ( y / n / dog ) " 
-        Switch ($AutoReply) 
+        $script:autoreply = Read-Host "Do you want to add an auto-reply to $upn's mailbox? ( y / n / dog ) " 
+        Switch ($script:autoreply) 
         { 
             Y { $oof = Read-Host "Enter auto-reply"
 
@@ -286,7 +281,7 @@ function Add-Autoreply {
                     }
             }
         }
-        until ($AutoReply -eq 'y' -or $AutoReply -eq 'n' -or $AutoReply -eq 'Dog')
+        until ($script:autoreply -eq 'y' -or $script:autoreply -eq 'n' -or $script:autoreply -eq 'Dog')
 }
 
 # Prompts to add mailbox permissions or not
@@ -299,8 +294,8 @@ function Add-MailboxPermissions{
         Write-host "** Mailbox Permissions **"
         Write-Host "*************************"
         
-            $MailboxPermission = Read-Host "Do you want anyone to have access to this mailbox? ( y / n ) "
-            Switch ($mailboxPermission)
+            $script:mailboxpermissions = Read-Host "Do you want anyone to have access to this mailbox? ( y / n ) "
+            Switch ($script:mailboxpermissions)
             {
                 Y { $WhichUser = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
 
@@ -325,7 +320,55 @@ function Add-MailboxPermissions{
                 Default { "You didn't enter an expect response, you idiot." }
             }
         }
-        until ($AutoReply -eq 'y' -or $AutoReply -eq 'n')
+        until ($script:mailboxpermissions -eq 'y' -or $script:mailboxpermissions -eq 'n')
+}
+
+function write-result {
+
+
+        write-host "You have done the following:"
+
+        write-host "`nRemoved $script:UFLicence"
+
+        if ($script:hideFromGAL -eq 'N')
+            {
+                write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."
+            }
+        else
+            {
+                write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."
+            }
+
+        if($script:removeDisitri -eq 'N')
+            {
+                write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"
+            }
+        else
+            {
+                write-host -ForegroundColor Green "`nYou have removed $global:upn from any distribution groups."
+            }
+
+        if ($script:autoreply -eq 'N')
+            {
+                write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"
+            }
+        else 
+            {
+                write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"
+            }
+
+        if($script:mailboxpermissions -eq 'N')
+            {
+                write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"
+            }
+        else
+            {
+                write-host -ForegroundColor Green "`nYou have added mailbox permissions to $global:upn"
+            }
+
+        pause
+
+
 }
 
 # Adds a feature to call '...' when waiting
