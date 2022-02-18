@@ -145,7 +145,7 @@ function removeLicences {
     $licences = import-csv .\licences.csv
     remove-item .\licences.csv -Force
 
-    [System.Collections.ArrayList]$UFLicences = @()
+    [System.Collections.ArrayList]$script:UFLicences = @()
 
     foreach ($Assignedlicence in $Assignedlicences)
         {
@@ -158,10 +158,10 @@ function removeLicences {
                     if ($Assignedlicence -like $licence."String_ id")
                         {
 
-                            if($UFLicences -notcontains $licence.Product_Display_name)
+                            if($script:UFLicences-notcontains $licence.Product_Display_name)
                                 {
 
-                                    $UFLicences = $UFLicences += $licence.Product_Display_name
+                                    $script:UFLicences = $script:UFLicences += $licence.Product_Display_name
                                     
                                 }
 
@@ -190,11 +190,11 @@ function Remove-GAL {
         Write-Host "**********************"
         
             $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
-            Switch ($script:hideFromGAL )
+            Switch ($script:hideFromGAL)
             {
-                Y { Set-Mailbox -Identity $upn -HiddenFromAddressListsEnabled $true
+                Y { Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true
 
-                    Write-host "$upn has been hidden"
+                    Write-host "$global:upn has been hidden"
 
                     remove-distributionGroups
 
@@ -223,7 +223,7 @@ function remove-distributionGroups{
     Write-host "** Distribution groups **"
     Write-host "*************************"
 
-    $mailbox = Get-Mailbox -Identity $upn
+    $mailbox = Get-Mailbox -Identity $global:upn
     $DN=$mailbox.DistinguishedName
     $Filter = "Members -like ""$DN"""
     $DistributionGroupsList = Get-DistributionGroup -ResultSize Unlimited -Filter $Filter
@@ -233,11 +233,11 @@ function remove-distributionGroups{
     $DistributionGroupsList | ft
 
     Do {
-        $script:removeDisitri = Read-Host "Do you want to remove $upn from all distribution groups ( y / n )?"
+        $script:removeDisitri = Read-Host "Do you want to remove $global:upn from all distribution groups ( y / n )?"
         Switch ($script:removeDisitri)
         {
             Y {  ForEach ($item in $DistributionGroupsList) {
-                    Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress –Member $upn –BypassSecurityGroupManagerCheck -Confirm:$false
+                    Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress –Member $global:upn –BypassSecurityGroupManagerCheck -Confirm:$false
                     Write-host "Successfully removed"
                 
                                             }
@@ -261,18 +261,18 @@ function Add-Autoreply {
         Write-host "** Autoreply **"
         Write-host "***************"
         
-        $script:autoreply = Read-Host "Do you want to add an auto-reply to $upn's mailbox? ( y / n / dog ) " 
+        $script:autoreply = Read-Host "Do you want to add an auto-reply to $global:upn's mailbox? ( y / n / dog ) " 
         Switch ($script:autoreply) 
         { 
             Y { $oof = Read-Host "Enter auto-reply"
 
-        Set-MailboxAutoReplyConfiguration -Identity $upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof"
+        Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof"
         write-host "Auto-reply added."
         Add-MailboxPermissions 
               } 
             N { Add-MailboxPermissions } 
             Default { "You didn't enter an expect response, you idiot." }
-            Dog {   write-host "   __      _"
+            Dog {   write-host "  __      _"
                     write-host  "o'')}____//"
                     write-host  " `_/      )"
                     write-host  " (_(_/-(_/"
@@ -299,23 +299,15 @@ function Add-MailboxPermissions{
             {
                 Y { $WhichUser = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
 
-                    add-mailboxpermission -identity $upn -user $WhichUser -AccessRights FullAccess
+                    add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess
 
-                    Write-host "Malibox permisions for $whichUser  have been added"
+                    Write-host "Malibox permisions for $whichUser have been added"
 
-                    Disconnect-ExchangeOnline -Confirm:$false
-
-                    exit
+                    write-result
 
                     }
 
-                N { Write-host "Ending Session..." 
-
-                    Disconnect-ExchangeOnline -Confirm:$false
-
-                    exit
-
-                    }
+                N {write-result}
 
                 Default { "You didn't enter an expect response, you idiot." }
             }
@@ -366,6 +358,7 @@ function write-result {
                 write-host -ForegroundColor Green "`nYou have added mailbox permissions to $global:upn"
             }
 
+
         pause
 
 
@@ -389,18 +382,12 @@ $global:upn = $null
 
 print-TecharyLogo
 
-Write-host "Updating modules. This may take some time..."
-
-countDown -timeSpan 25
-
-Update-Module
-
 connect-365
 
-$upn = get-upn
+get-upn
 
 removeLicences
 
-Set-Mailbox $upn -Type Shared
+Set-Mailbox $global:upn -Type Shared
 
 Remove-GAL
