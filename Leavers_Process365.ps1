@@ -320,7 +320,8 @@ function write-result {
 
         write-host "You have done the following:"
 
-        write-host "`nRemoved $script:UFLicence"
+        write-host "`nRemoved the following licences:"
+        $script:UFLicences
 
         if ($script:hideFromGAL -eq 'N')
             {
