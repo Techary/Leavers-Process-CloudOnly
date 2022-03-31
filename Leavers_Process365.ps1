@@ -1,30 +1,6 @@
-﻿#####################################
+#####################################
 ## Author: James Tarran // Techary ##
 #####################################
-
-# ---------------------- ELEVATE ADMIN ---------------------- 
-
-param([switch]$Elevated)
-
-function Test-Admin {
-  $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
-  $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
-}
-
-if ((Test-Admin) -eq $false)  {
-    if ($elevated) 
-    {
-        # tried to elevate, did not work, aborting
-    } 
-    else {
-        Start-Process powershell.exe -Verb RunAs -ArgumentList ('-noprofile -noexit -file "{0}" -elevated' -f ($myinvocation.MyCommand.Definition))
-}
-
-exit
-
-}
-
-
 # ---------------------- USED FUNCTIONS ----------------------
 
 # Prints 'Techary' in ASCII
@@ -67,7 +43,7 @@ function connect-365 {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
 
-        Install-Module -Name ExchangeOnlineManagement
+        Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser
 
         import-module ExchangeOnlineManagement
 
@@ -77,7 +53,7 @@ function connect-365 {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
 
-        Install-Module MSOnline
+        Install-Module MSOnline -Scope CurrentUser
 
         }
 
@@ -85,7 +61,7 @@ function connect-365 {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
 
-        Install-Module AzureAD
+        Install-Module AzureAD -Scope CurrentUser
 
             }
 
@@ -316,7 +292,6 @@ function Add-MailboxPermissions{
 }
 
 function write-result {
-
 
         write-host "You have done the following:"
 
