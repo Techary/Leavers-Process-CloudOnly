@@ -111,8 +111,7 @@ function get-upn {
 
     }
 
-# Removes licences and converts the string ID to something we're more familiar with.
-# Then writes a warning that this licence will need to be removed from the 365 portal. 
+# Removes licences and converts the string ID to something we're more familiar with. 
 function removeLicences {
 
     $AssignedLicences = (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId
@@ -134,7 +133,7 @@ function removeLicences {
                     if ($Assignedlicence -like $licence."String_ id")
                         {
 
-                            if($script:UFLicences-notcontains $licence.Product_Display_name)
+                            if($script:UFLicences -notcontains $licence.Product_Display_name)
                                 {
 
                                     $script:UFLicences = $script:UFLicences += $licence.Product_Display_name
