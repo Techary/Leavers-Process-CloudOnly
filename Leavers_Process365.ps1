@@ -101,13 +101,27 @@ function get-upn {
 
     $global:upn = read-host "Input UPN"
 
-    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue) {Write-host "User found..."
-     $global:upn
-    }
+    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue) 
+        {
 
-    else {write-host "User not found, try again" 
-        get-upn
-}
+            write-host -NoNewline "Searching for $global:upn"
+            CountDown 3
+
+            Write-host "User found!"
+            start-sleep 1
+
+        }
+
+    else 
+        {
+
+            write-host -NoNewline "Searching for $global:upn"
+            CountDown 3
+
+            write-host "User not found, try again" 
+            get-upn
+
+        }
 
     }
 
@@ -130,7 +144,7 @@ function removeLicences {
             foreach ($licence in $licences)
                 {
 
-                    if ($Assignedlicence -like $licence."String_id")
+                    if ($Assignedlicence -like $licence.String_id)
                         {
 
                             if($script:UFLicences -notcontains $licence.Product_Display_name)
@@ -147,48 +161,57 @@ function removeLicences {
         }
 
     (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId |
-    foreach{
-        Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_
-    }
+    foreach
+        {
+
+            Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_
+
+        }
 
 }
 
 # Removes UPN from global address list. 
 function Remove-GAL {
 
-        Do { cls
+        Do 
+            { 
+                cls
 
-        print-TecharyLogo
-        
-        Write-host "**********************"
-        Write-host "** Remove from GAL  **"
-        Write-Host "**********************"
-        
-            $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
-            Switch ($script:hideFromGAL)
-            {
-                Y { Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true
+                print-TecharyLogo
+                
+                Write-host "**********************"
+                Write-host "** Remove from GAL  **"
+                Write-Host "**********************"
+                
+                    $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
+                    Switch ($script:hideFromGAL)
+                    {
+                        Y 
+                            { 
+                                Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true
 
-                    Write-host "$global:upn has been hidden"
+                                Write-host "$global:upn has been hidden"
 
-                    remove-distributionGroups
+                                remove-distributionGroups
 
-                   }
+                            }
 
-                N { 
-                    remove-distributionGroups
-                    
-                   }
+                        N 
+                            { 
 
-                Default { "You didn't enter an expect response, you idiot." }
+                                remove-distributionGroups
+                            
+                            }
+
+                        Default { "You didn't enter an expect response, you idiot." }
+                    }
             }
-        }
         until ($script:hideFromGAL  -eq 'y' -or $script:hideFromGAL  -eq 'n')
 
 }
 
 # Lists all distri's and prompts to remove UPN from them or not
-function remove-distributionGroups{
+function remove-distributionGroups {
 
     cls
 
@@ -207,28 +230,39 @@ function remove-distributionGroups{
     Write-host `n
     $DistributionGroupsList | ft
 
-    Do {
-        $script:removeDisitri = Read-Host "Do you want to remove $global:upn from all distribution groups ( y / n )?"
-        Switch ($script:removeDisitri)
+    Do 
         {
-            Y {  ForEach ($item in $DistributionGroupsList) {
-                    Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress –Member $global:upn –BypassSecurityGroupManagerCheck -Confirm:$false
-                    Write-host "Successfully removed"
-                
-                                            }
-                Add-Autoreply
-                                }
-            Default { "You didn't enter an expect response, you idiot." }
 
-            N { Add-Autoreply }
+            $script:removeDisitri = Read-Host "Do you want to remove $global:upn from all distribution groups ( y / n )?"
+            Switch ($script:removeDisitri)
+            {
+                Y 
+                    {  
+                        ForEach ($item in $DistributionGroupsList) 
+                            {
+
+                                Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $global:upn -BypassSecurityGroupManagerCheck -Confirm:$false
+                                Write-host "Successfully removed"
+                    
+                            }
+                        Add-Autoreply
+
+                    }
+                Default { "You didn't enter an expect response, you idiot." }
+
+                N { Add-Autoreply }
             }
+
         }
-            until ($script:removeDisitri -eq 'y' -or $script:removeDisitri -eq 'n') 
+    until ($script:removeDisitri -eq 'y' -or $script:removeDisitri -eq 'n')
+
 }
 
 # Prompts to add an auto response or not
 function Add-Autoreply {
-    Do { cls
+    Do 
+    { 
+        cls
 
         print-TecharyLogo
         
@@ -241,53 +275,60 @@ function Add-Autoreply {
         { 
             Y { $oof = Read-Host "Enter auto-reply"
 
-        Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof"
-        write-host "Auto-reply added."
-        Add-MailboxPermissions 
+                Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof"
+                write-host "Auto-reply added."
+                Add-MailboxPermissions 
               } 
             N { Add-MailboxPermissions } 
             Default { "You didn't enter an expect response, you idiot." }
-            Dog {   write-host "  __      _"
+            Dog {   
+                    write-host "  __      _"
                     write-host  "o'')}____//"
                     write-host  " `_/      )"
                     write-host  " (_(_/-(_/"
                     start-sleep 5
                     Add-Autoreply
-                    }
-            }
+
+                }
+
         }
-        until ($script:autoreply -eq 'y' -or $script:autoreply -eq 'n' -or $script:autoreply -eq 'Dog')
+
+        }
+    until ($script:autoreply -eq 'y' -or $script:autoreply -eq 'n' -or $script:autoreply -eq 'Dog')
 }
 
 # Prompts to add mailbox permissions or not
 function Add-MailboxPermissions{
-    Do { cls
+    Do 
+        { 
+            cls
 
-        print-TecharyLogo
-        
-        Write-host "*************************"
-        Write-host "** Mailbox Permissions **"
-        Write-Host "*************************"
+            print-TecharyLogo
+            
+            Write-host "*************************"
+            Write-host "** Mailbox Permissions **"
+            Write-Host "*************************"
         
             $script:mailboxpermissions = Read-Host "Do you want anyone to have access to this mailbox? ( y / n ) "
             Switch ($script:mailboxpermissions)
-            {
-                Y { $WhichUser = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
+                {
+                    Y { $WhichUser = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
 
-                    add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess
+                        add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess
 
-                    Write-host "Malibox permisions for $whichUser have been added"
+                        Write-host "Malibox permisions for $whichUser have been added"
 
-                    write-result
+                        write-result
 
-                    }
+                        }
 
-                N {write-result}
+                    N {write-result}
 
-                Default { "You didn't enter an expect response, you idiot." }
-            }
+                    Default { "You didn't enter an expect response, you idiot." }
+                }
         }
-        until ($script:mailboxpermissions -eq 'y' -or $script:mailboxpermissions -eq 'n')
+    until ($script:mailboxpermissions -eq 'y' -or $script:mailboxpermissions -eq 'n')
+    
 }
 
 function write-result {
