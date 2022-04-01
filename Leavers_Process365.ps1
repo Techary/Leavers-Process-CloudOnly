@@ -130,7 +130,7 @@ function removeLicences {
             foreach ($licence in $licences)
                 {
 
-                    if ($Assignedlicence -like $licence."String_ id")
+                    if ($Assignedlicence -like $licence."String_id")
                         {
 
                             if($script:UFLicences -notcontains $licence.Product_Display_name)
