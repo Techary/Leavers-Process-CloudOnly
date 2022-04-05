@@ -160,13 +160,7 @@ function removeLicences {
 
         }
 
-    (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId |
-    foreach
-        {
-
-            Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_
-
-        }
+    (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_}
 
 }
 
