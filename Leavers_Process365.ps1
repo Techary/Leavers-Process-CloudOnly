@@ -27,8 +27,6 @@ function connect-365 {
 
     function invoke-mfaConnection{
 
-        Connect-ExchangeOnline
-
         Import-Module AzureAD
 
         import-module MSOnline
@@ -36,6 +34,10 @@ function connect-365 {
         import-module ExchangeOnlineManagement
 
         Connect-MsolService
+
+        Connect-ExchangeOnline
+
+        Connect-AzureAD
 
         }
 
@@ -95,7 +97,7 @@ function connect-365 {
 invoke-mfaConnection
 
 }
-# If the UPN is not specified as a parameter, asks for it here.
+# Asks for UPN 
 # Then checks if the user exists in 365. 
 function get-upn {
 
@@ -104,10 +106,7 @@ function get-upn {
     if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue) 
         {
 
-            write-host -NoNewline "Searching for $global:upn"
-            CountDown 3
-
-            Write-host "User found!"
+            Write-host "`nUser found!"
             start-sleep 1
 
         }
@@ -115,10 +114,8 @@ function get-upn {
     else 
         {
 
-            write-host -NoNewline "Searching for $global:upn"
-            CountDown 3
-
             write-host "User not found, try again" 
+            start-sleep 1
             get-upn
 
         }
@@ -161,6 +158,50 @@ function removeLicences {
         }
 
     (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_}
+
+}
+
+#Generates a new random password
+function get-newpassphrase {
+
+    $SpecialCharacter = @("!","`$","%","^","&","*","'","@","~","#")
+
+    $ieObject = New-Object -ComObject 'InternetExplorer.Application'
+
+    $ieObject.Navigate('https://www.worksighted.com/random-passphrase-generator/')
+
+    while ($ieobject.ReadyState -ne 4) 
+            {
+
+                    start-sleep -Milliseconds 1
+                    
+            }
+
+    $currentDocument = $ieObject.Document
+
+    $password = ($currentDocument.IHTMLDocument3_getElementsByTagName("input") | Where-Object {$_.id -eq "txt"}).value
+    $password = $password.Split(' ')[-4..-1]
+    $password = -join($password[0],$password[1],$password[2],$password[3],($SpecialCharacter | Get-Random))
+
+    write-output $password
+
+}
+
+#Sets a the new password
+function Set-NewPassword {
+
+    $Script:NewCloudPassword = get-newpassphrase
+
+    $SecureCloudPassword = ConvertTo-SecureString $Script:NewCloudPassword -AsPlainText -force
+
+    Set-MsolUserPassword -UserPrincipalName $script:upn -NewPassword $SecureCloudPassword
+  
+}
+
+#Removes all Azure AD session tokens
+function revoke-365Access {
+
+    Revoke-AzureADUserAllRefreshToken -ObjectId $script:upn
 
 }
 
@@ -236,7 +277,7 @@ function remove-distributionGroups {
                             {
 
                                 Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $global:upn -BypassSecurityGroupManagerCheck -Confirm:$false
-                                Write-host "Successfully removed"
+                                Write-host "Successfully removed from $($item.DisplayName)"
                     
                             }
                         Add-Autoreply
@@ -368,6 +409,8 @@ function write-result {
                 write-host -ForegroundColor Green "`nYou have added mailbox permissions to $global:upn"
             }
 
+        write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
+
 
         pause
 
@@ -399,5 +442,9 @@ get-upn
 removeLicences
 
 Set-Mailbox $global:upn -Type Shared
+
+Set-NewPassword
+
+revoke-365Access
 
 Remove-GAL
