@@ -411,6 +411,8 @@ function write-result {
 
         write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
 
+        Write-Host "A transcript of all the actions taken in this script can be found at $psscriptroot\$script:upn.txt"
+
 
         pause
 
@@ -422,11 +424,11 @@ function CountDown() {
     param($timeSpan)
 
     while ($timeSpan -gt 0)
-  {
-    Write-Host '.' -NoNewline
-    $timeSpan = $timeSpan - 1
-    Start-Sleep -Seconds 1
-  }
+        {
+            Write-Host '.' -NoNewline
+            $timeSpan = $timeSpan - 1
+            Start-Sleep -Seconds 1
+        }
 }
 
 # ---------------------- START SCRIPT ----------------------
@@ -439,6 +441,8 @@ connect-365
 
 get-upn
 
+Start-Transcript ".\$script:upn.txt"
+
 removeLicences
 
 Set-Mailbox $global:upn -Type Shared
@@ -448,3 +452,5 @@ Set-NewPassword
 revoke-365Access
 
 Remove-GAL
+
+Stop-Transcript
