@@ -515,8 +515,8 @@ function Add-MailboxForwarding{
 
                                 try 
                                     {
-
-                                        add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess
+                                        	
+                                        Set-Mailbox $script:upn -ForwardingAddress $WhichUser -erroraction stop
 
                                     }
                                 catch 
