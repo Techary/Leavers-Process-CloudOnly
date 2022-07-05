@@ -101,7 +101,7 @@ invoke-mfaConnection
 # Then checks if the user exists in 365. 
 function get-upn {
 
-    $global:upn = read-host "Input UPN"
+    $global:upn = read-host "Leaver UPN"
 
     if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue) 
         {
@@ -194,14 +194,37 @@ function Set-NewPassword {
 
     $SecureCloudPassword = ConvertTo-SecureString $Script:NewCloudPassword -AsPlainText -force
 
-    Set-MsolUserPassword -UserPrincipalName $script:upn -NewPassword $SecureCloudPassword
+    try 
+        {
+
+            Set-MsolUserPassword -UserPrincipalName $script:upn -NewPassword $SecureCloudPassword -ErrorAction Stop
+            
+        }
+    catch 
+        {
+            write-output "Unable to set password"
+            $_.exception
+        }
+
   
 }
 
 #Removes all Azure AD session tokens
 function revoke-365Access {
 
-    Revoke-AzureADUserAllRefreshToken -ObjectId $script:upn
+    try 
+        {
+
+            Revoke-AzureADUserAllRefreshToken -ObjectId $script:upn -ErrorAction Stop
+        
+        }
+    catch 
+        {
+
+            write-output "Unable to remove refresh tokens"
+            $_.exception
+
+        }    
 
 }
 
@@ -222,10 +245,31 @@ function Remove-GAL {
                     Switch ($script:hideFromGAL)
                     {
                         Y 
-                            { 
-                                Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true
+                            {
+                                try 
+                                    {
 
-                                Write-host "$global:upn has been hidden"
+                                        Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true -ErrorAction stop
+                                    
+                                    }
+                                catch 
+                                    {
+                                        
+                                        write-host "Unable to hide from GAL"
+                                        $_.exception
+                                        $GALError = $true
+
+                                    }
+                                finally
+                                    {
+                                        if($null -eq $GALError)
+                                            {
+
+                                                Write-host "$global:upn has been hidden"
+
+                                            }
+
+                                    }                               
 
                                 remove-distributionGroups
 
@@ -275,14 +319,38 @@ function remove-distributionGroups {
                     {  
                         ForEach ($item in $DistributionGroupsList) 
                             {
+                                $RemovalException = $false
 
-                                Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $global:upn -BypassSecurityGroupManagerCheck -Confirm:$false
-                                Write-host "Successfully removed from $($item.DisplayName)"
+                                try 
+                                    {
+
+                                        Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $global:upn -BypassSecurityGroupManagerCheck -Confirm:$false -ErrorAction stop
+                                    
+                                    }
+                                catch 
+                                    {
+
+                                        Write-Output "Unable to remove from $($item.displayname)"
+                                        $_.exception
+                                        $RemovalException = $true
+                                    }
+                                finally 
+                                    {
+                                        if($RemovalException -eq $false)
+                                            {
+
+                                                Write-host "Successfully removed from $($item.DisplayName)"
+
+                                            }
+                                    }
+
                     
                             }
+
                         Add-Autoreply
 
                     }
+
                 Default { "You didn't enter an expect response, you idiot." }
 
                 N { Add-Autoreply }
@@ -310,12 +378,37 @@ function Add-Autoreply {
         { 
             Y { $oof = Read-Host "Enter auto-reply"
 
-                Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof"
-                write-host "Auto-reply added."
+                try 
+                    {
+
+                        Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof" -ErrorAction stop
+                    
+                    }
+                catch 
+                    {
+                        Write-output "Unable to set auto-reply"
+                        $_.exception
+                        $AutoReplyError
+                    }
+                finally 
+                    {
+                        if($null -eq $AutoReplyError)
+                            {
+
+                                write-host "Auto-reply added."
+
+                            }
+
+                    }               
+                
                 Add-MailboxPermissions 
-              } 
+
+              }
+
             N { Add-MailboxPermissions } 
+
             Default { "You didn't enter an expect response, you idiot." }
+
             Dog {   
                     write-host "  __      _"
                     write-host  "o'')}____//"
@@ -349,20 +442,122 @@ function Add-MailboxPermissions{
                 {
                     Y { $WhichUser = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
 
-                        add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess
+                        if(Get-MsolUser -UserPrincipalName $WhichUser -ErrorAction SilentlyContinue)
+                            {
 
-                        Write-host "Malibox permisions for $whichUser have been added"
+                                try 
+                                    {
+
+                                        add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess -erroraction stop
+
+                                    }
+                                catch 
+                                    {
+
+                                        write-output "Unable to add permissions"
+                                        $_.exception
+                                        $MailboxError = $true
+
+                                    }
+                                finally 
+                                    {
+                                        if($null -eq $MailboxError)
+                                            {
+
+                                                Write-host "Malibox permisions for $whichUser have been added"
+
+                                            }                                       
+
+                                    }
+                                    
+                            }
+                        else  
+                            {
+
+                                Write-output "$WhichUser not found. Please try again"
+                                start-sleep 3
+                                Add-MailboxPermissions
+
+                            }
+
+                        Add-MailboxForwarding
+
+                     }
+
+                    N {Add-MailboxForwarding}
+
+                    Default { "You didn't enter an expect response, you idiot." }
+                }
+        }
+    until ($script:mailboxpermissions -eq 'y' -or $script:mailboxpermissions -eq 'n')
+    
+}
+
+# Prompts to add mailbox forwarding or not
+function Add-MailboxForwarding{
+    Do 
+        { 
+            cls
+
+            print-TecharyLogo
+            
+            Write-host "*************************"
+            Write-host "** Mailbox Forwarding **"
+            Write-Host "*************************"
+        
+            $script:mailboxForwarding = Read-Host "Do you want any forwarding in place on this account? ( y / n ) "
+            Switch ($script:mailboxForwarding)
+                {
+                    Y { $script:WhichUser = Read-Host "Enter the E-mail address of the user that emails should be forwarded to "
+
+                        if(Get-MsolUser -UserPrincipalName $WhichUser -ErrorAction SilentlyContinue)
+                            {
+
+                                try 
+                                    {
+
+                                        add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess
+
+                                    }
+                                catch 
+                                    {
+
+                                        write-output "Unable to add permissions"
+                                        $_.exception
+                                        $MailboxError = $true
+
+                                    }
+                                finally 
+                                    {
+                                        if($null -eq $MailboxError)
+                                            {
+
+                                                Write-host "Malibox forwarding to $whichUser has been added"
+
+                                            }                                       
+
+                                    }
+                                    
+                            }
+                        else  
+                            {
+
+                                Write-output "$WhichUser not found. Please try again"
+                                start-sleep 3
+                                Add-MailboxPermissions
+
+                            }
 
                         write-result
 
-                        }
+                     }
 
                     N {write-result}
 
                     Default { "You didn't enter an expect response, you idiot." }
                 }
         }
-    until ($script:mailboxpermissions -eq 'y' -or $script:mailboxpermissions -eq 'n')
+    until ($script:mailboxforwarding -eq 'y' -or $script:mailboxforwarding -eq 'n')
     
 }
 
@@ -407,6 +602,14 @@ function write-result {
         else
             {
                 write-host -ForegroundColor Green "`nYou have added mailbox permissions to $global:upn"
+            }
+        if($script:mailboxforwarding -eq 'N')
+            {
+                write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"
+            }
+        else
+            {
+                write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:whichuser"
             }
 
         write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
