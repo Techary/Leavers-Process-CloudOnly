@@ -5,23 +5,23 @@
 
 # Prints 'Techary' in ASCII
 function print-TecharyLogo {
-        
+
     $logo = "
-     _______        _                      
-    |__   __|      | |                     
-       | | ___  ___| |__   __ _ _ __ _   _ 
+     _______        _
+    |__   __|      | |
+       | | ___  ___| |__   __ _ _ __ _   _
        | |/ _ \/ __| '_ \ / _`` | '__| | | |
        | |  __/ (__| | | | (_| | |  | |_| |
        |_|\___|\___|_| |_|\__,_|_|   \__, |
                                       __/ |
-                                     |___/ 
+                                     |___/
 "
 
 write-host -ForegroundColor Green $logo
 
 }
 
-# Checks to see if AzureAD, MSOnline, and Exchangeonelinemanagement are installed. 
+# Checks to see if AzureAD, MSOnline, and Exchangeonelinemanagement are installed.
 # If not, installs them. Then connects to 365 online
 function connect-365 {
 
@@ -70,7 +70,7 @@ function connect-365 {
     if (Get-Module -ListAvailable -Name ExchangeOnlineManagement) {
         write-host " "
         write-host "Exchange online Management exists"
-    } 
+    }
     else {
         Write-host "Exchange Online Management module does not exist. Please ensure powershell is running as admin. Attempting to download..."
         Get-ExchangeOnlineManagement
@@ -79,7 +79,7 @@ function connect-365 {
 
     if (Get-Module -ListAvailable -Name MSOnline) {
         write-host "MSOnline exists"
-    } 
+    }
     else {
         Write-host "MSOnline module does not exist. Please ensure powershell is running as admin. Attempting to download..."
         Get-MSOnline
@@ -88,7 +88,7 @@ function connect-365 {
 
     if (Get-Module -ListAvailable -Name AzureAD) {
         write-host "AzureAD exists"
-    } 
+    }
     else {
         Write-host "AzureAD module does not exist. Please ensure powershell is running as admin. Attempting to download..."
         Get-AzureAD
@@ -97,13 +97,13 @@ function connect-365 {
 invoke-mfaConnection
 
 }
-# Asks for UPN 
-# Then checks if the user exists in 365. 
+# Asks for UPN
+# Then checks if the user exists in 365.
 function get-upn {
 
     $global:upn = read-host "Leaver UPN"
 
-    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue) 
+    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue)
         {
 
             Write-host "`nUser found!"
@@ -111,10 +111,10 @@ function get-upn {
 
         }
 
-    else 
+    else
         {
 
-            write-host "User not found, try again" 
+            write-host "User not found, try again"
             start-sleep 1
             get-upn
 
@@ -122,7 +122,7 @@ function get-upn {
 
     }
 
-# Removes licences and converts the string ID to something we're more familiar with. 
+# Removes licences and converts the string ID to something we're more familiar with.
 function removeLicences {
 
     $AssignedLicences = (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId
@@ -148,7 +148,7 @@ function removeLicences {
                                 {
 
                                     $script:UFLicences = $script:UFLicences += $licence.Product_Display_name
-                                    
+
                                 }
 
                         }
@@ -170,11 +170,11 @@ function get-newpassphrase {
 
     $ieObject.Navigate('https://www.worksighted.com/random-passphrase-generator/')
 
-    while ($ieobject.ReadyState -ne 4) 
+    while ($ieobject.ReadyState -ne 4)
             {
 
                     start-sleep -Milliseconds 1
-                    
+
             }
 
     $currentDocument = $ieObject.Document
@@ -194,67 +194,67 @@ function Set-NewPassword {
 
     $SecureCloudPassword = ConvertTo-SecureString $Script:NewCloudPassword -AsPlainText -force
 
-    try 
+    try
         {
 
             Set-MsolUserPassword -UserPrincipalName $script:upn -NewPassword $SecureCloudPassword -ErrorAction Stop
-            
+
         }
-    catch 
+    catch
         {
             write-output "Unable to set password"
             $_.exception
         }
 
-  
+
 }
 
 #Removes all Azure AD session tokens
 function revoke-365Access {
 
-    try 
+    try
         {
 
             Revoke-AzureADUserAllRefreshToken -ObjectId $script:upn -ErrorAction Stop
-        
+
         }
-    catch 
+    catch
         {
 
             write-output "Unable to remove refresh tokens"
             $_.exception
 
-        }    
+        }
 
 }
 
-# Removes UPN from global address list. 
+# Removes UPN from global address list.
 function Remove-GAL {
 
-        Do 
-            { 
+        Do
+            {
                 cls
 
                 print-TecharyLogo
-                
+
                 Write-host "**********************"
                 Write-host "** Remove from GAL  **"
                 Write-Host "**********************"
-                
+
                     $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
                     Switch ($script:hideFromGAL)
                     {
-                        Y 
+                        Y
                             {
-                                try 
+                                try
                                     {
 
                                         Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true -ErrorAction stop
-                                    
+
                                     }
-                                catch 
+                                catch
                                     {
-                                        
+
                                         write-host "Unable to hide from GAL"
                                         $_.exception
                                         $GALError = $true
@@ -269,17 +269,17 @@ function Remove-GAL {
 
                                             }
 
-                                    }                               
+                                    }
 
                                 remove-distributionGroups
 
                             }
 
-                        N 
-                            { 
+                        N
+                            {
 
                                 remove-distributionGroups
-                            
+
                             }
 
                         Default { "You didn't enter an expect response, you idiot." }
@@ -309,32 +309,32 @@ function remove-distributionGroups {
     Write-host `n
     $DistributionGroupsList | ft
 
-    Do 
+    Do
         {
 
             $script:removeDisitri = Read-Host "Do you want to remove $global:upn from all distribution groups ( y / n )?"
             Switch ($script:removeDisitri)
             {
-                Y 
-                    {  
-                        ForEach ($item in $DistributionGroupsList) 
+                Y
+                    {
+                        ForEach ($item in $DistributionGroupsList)
                             {
                                 $RemovalException = $false
 
-                                try 
+                                try
                                     {
 
                                         Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $global:upn -BypassSecurityGroupManagerCheck -Confirm:$false -ErrorAction stop
-                                    
+
                                     }
-                                catch 
+                                catch
                                     {
 
                                         Write-Output "Unable to remove from $($item.displayname)"
                                         $_.exception
                                         $RemovalException = $true
                                     }
-                                finally 
+                                finally
                                     {
                                         if($RemovalException -eq $false)
                                             {
@@ -344,7 +344,7 @@ function remove-distributionGroups {
                                             }
                                     }
 
-                    
+
                             }
 
                         Add-Autoreply
@@ -363,34 +363,34 @@ function remove-distributionGroups {
 
 # Prompts to add an auto response or not
 function Add-Autoreply {
-    Do 
-    { 
+    Do
+    {
         cls
 
         print-TecharyLogo
-        
+
         Write-Host "***************"
         Write-host "** Autoreply **"
         Write-host "***************"
-        
-        $script:autoreply = Read-Host "Do you want to add an auto-reply to $global:upn's mailbox? ( y / n / dog ) " 
-        Switch ($script:autoreply) 
-        { 
+
+        $script:autoreply = Read-Host "Do you want to add an auto-reply to $global:upn's mailbox? ( y / n / dog ) "
+        Switch ($script:autoreply)
+        {
             Y { $oof = Read-Host "Enter auto-reply"
 
-                try 
+                try
                     {
 
                         Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof" -ErrorAction stop
-                    
+
                     }
-                catch 
+                catch
                     {
                         Write-output "Unable to set auto-reply"
                         $_.exception
                         $AutoReplyError
                     }
-                finally 
+                finally
                     {
                         if($null -eq $AutoReplyError)
                             {
@@ -399,17 +399,17 @@ function Add-Autoreply {
 
                             }
 
-                    }               
-                
-                Add-MailboxPermissions 
+                    }
+
+                Add-MailboxPermissions
 
               }
 
-            N { Add-MailboxPermissions } 
+            N { Add-MailboxPermissions }
 
             Default { "You didn't enter an expect response, you idiot." }
 
-            Dog {   
+            Dog {
                     write-host "  __      _"
                     write-host  "o'')}____//"
                     write-host  " `_/      )"
@@ -427,31 +427,31 @@ function Add-Autoreply {
 
 # Prompts to add mailbox permissions or not
 function Add-MailboxPermissions{
-    Do 
-        { 
+    Do
+        {
             cls
 
             print-TecharyLogo
-            
+
             Write-host "*************************"
             Write-host "** Mailbox Permissions **"
             Write-Host "*************************"
-        
+
             $script:mailboxpermissions = Read-Host "Do you want anyone to have access to this mailbox? ( y / n ) "
             Switch ($script:mailboxpermissions)
                 {
-                    Y { $WhichUser = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
+                    Y { $script:WhichUserPermissions = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
 
-                        if(Get-MsolUser -UserPrincipalName $WhichUser -ErrorAction SilentlyContinue)
+                        if(Get-MsolUser -UserPrincipalName $script:WhichUserPermissions -ErrorAction SilentlyContinue)
                             {
 
-                                try 
+                                try
                                     {
 
-                                        add-mailboxpermission -identity $global:upn -user $WhichUser -AccessRights FullAccess -erroraction stop
+                                        add-mailboxpermission -identity $global:upn -user $script:WhichUserPermissions -AccessRights FullAccess -erroraction stop
 
                                     }
-                                catch 
+                                catch
                                     {
 
                                         write-output "Unable to add permissions"
@@ -459,22 +459,22 @@ function Add-MailboxPermissions{
                                         $MailboxError = $true
 
                                     }
-                                finally 
+                                finally
                                     {
                                         if($null -eq $MailboxError)
                                             {
 
-                                                Write-host "Malibox permisions for $whichUser have been added"
+                                                Write-host "Malibox permisions for $script:WhichUserPermissions have been added"
 
-                                            }                                       
+                                            }
 
                                     }
-                                    
+
                             }
-                        else  
+                        else
                             {
 
-                                Write-output "$WhichUser not found. Please try again"
+                                Write-output "$script:WhichUserPermissions not found. Please try again"
                                 start-sleep 3
                                 Add-MailboxPermissions
 
@@ -490,36 +490,36 @@ function Add-MailboxPermissions{
                 }
         }
     until ($script:mailboxpermissions -eq 'y' -or $script:mailboxpermissions -eq 'n')
-    
+
 }
 
 # Prompts to add mailbox forwarding or not
 function Add-MailboxForwarding{
-    Do 
-        { 
+    Do
+        {
             cls
 
             print-TecharyLogo
-            
+
             Write-host "*************************"
             Write-host "** Mailbox Forwarding **"
             Write-Host "*************************"
-        
+
             $script:mailboxForwarding = Read-Host "Do you want any forwarding in place on this account? ( y / n ) "
             Switch ($script:mailboxForwarding)
                 {
-                    Y { $script:WhichUser = Read-Host "Enter the E-mail address of the user that emails should be forwarded to "
+                    Y { $script:WhichUserForwarding = Read-Host "Enter the E-mail address of the user that emails should be forwarded to "
 
-                        if(Get-MsolUser -UserPrincipalName $WhichUser -ErrorAction SilentlyContinue)
+                        if(Get-MsolUser -UserPrincipalName $script:WhichUserForwarding -ErrorAction SilentlyContinue)
                             {
 
-                                try 
+                                try
                                     {
-                                        	
-                                        Set-Mailbox $script:upn -ForwardingAddress $WhichUser -erroraction stop
+
+                                        Set-Mailbox $script:upn -ForwardingAddress $script:WhichUserForwarding -erroraction stop
 
                                     }
-                                catch 
+                                catch
                                     {
 
                                         write-output "Unable to add permissions"
@@ -527,22 +527,22 @@ function Add-MailboxForwarding{
                                         $MailboxError = $true
 
                                     }
-                                finally 
+                                finally
                                     {
                                         if($null -eq $MailboxError)
                                             {
 
-                                                Write-host "Malibox forwarding to $whichUser has been added"
+                                                Write-host "Malibox forwarding to $script:WhichUserForwarding has been added"
 
-                                            }                                       
+                                            }
 
                                     }
-                                    
+
                             }
-                        else  
+                        else
                             {
 
-                                Write-output "$WhichUser not found. Please try again"
+                                Write-output "$script:WhichUserForwarding not found. Please try again"
                                 start-sleep 3
                                 Add-MailboxPermissions
 
@@ -558,7 +558,7 @@ function Add-MailboxForwarding{
                 }
         }
     until ($script:mailboxforwarding -eq 'y' -or $script:mailboxforwarding -eq 'n')
-    
+
 }
 
 function write-result {
@@ -590,7 +590,7 @@ function write-result {
             {
                 write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"
             }
-        else 
+        else
             {
                 write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"
             }
@@ -601,7 +601,7 @@ function write-result {
             }
         else
             {
-                write-host -ForegroundColor Green "`nYou have added mailbox permissions to $global:upn"
+                write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"
             }
         if($script:mailboxforwarding -eq 'N')
             {
@@ -609,7 +609,7 @@ function write-result {
             }
         else
             {
-                write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:whichuser"
+                write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"
             }
 
         write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
