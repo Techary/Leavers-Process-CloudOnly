@@ -156,7 +156,7 @@ function removeLicences {
                 }
 
         }
-    if ($null -eq $script:UFLicences)
+    if ($script:UFLicences.count -eq 0)
         {
             write-output "There are no licenses applied to this account."
             $continue = read-host "Do you want to contine? YOU WILL SEE ERRORS. Y/N"
@@ -182,7 +182,7 @@ function removeLicences {
     else
         {
 
-            (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicences $_}
+            (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_}
 
         }
 
@@ -672,7 +672,7 @@ connect-365
 
 get-upn
 
-Start-Transcript ".\$script:upn.txt"
+Start-Transcript ".\$global:upn.txt"
 
 removeLicences
 
