@@ -103,7 +103,7 @@ function get-upn {
 
     $global:upn = read-host "Leaver UPN"
 
-    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue)
+    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue | out-null)
         {
 
             Write-host "`nUser found!"
@@ -168,7 +168,7 @@ function removeLicences {
             elseif ($continue -eq "N")
                 {
 
-                    exit
+                    write-result
 
                 }
             else
