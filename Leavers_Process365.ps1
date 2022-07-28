@@ -63,7 +63,7 @@ function connect-365 {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
 
-        Install-Module AzureAD -Scope CurrentUser
+        Install-Module AzureAD -Scope CurrentUser -force -AllowClobber
 
             }
 
@@ -72,7 +72,7 @@ function connect-365 {
         write-host "Exchange online Management exists"
     }
     else {
-        Write-host "Exchange Online Management module does not exist. Please ensure powershell is running as admin. Attempting to download..."
+        Write-host "Exchange Online Management module does not exist. Attempting to download..."
         Get-ExchangeOnlineManagement
     }
 
@@ -81,7 +81,7 @@ function connect-365 {
         write-host "MSOnline exists"
     }
     else {
-        Write-host "MSOnline module does not exist. Please ensure powershell is running as admin. Attempting to download..."
+        Write-host "MSOnline module does not exist. Attempting to download..."
         Get-MSOnline
     }
 
@@ -90,7 +90,7 @@ function connect-365 {
         write-host "AzureAD exists"
     }
     else {
-        Write-host "AzureAD module does not exist. Please ensure powershell is running as admin. Attempting to download..."
+        Write-host "AzureAD module does not exist. Attempting to download..."
         Get-AzureAD
     }
 
@@ -147,7 +147,7 @@ function removeLicences {
                             if($script:UFLicences -notcontains $licence.Product_Display_name)
                                 {
 
-                                    $script:UFLicences = $script:UFLicences += $licence.Product_Display_name
+                                    $script:UFLicences.add($licence.Product_Display_name)
 
                                 }
 
@@ -156,8 +156,36 @@ function removeLicences {
                 }
 
         }
+    if ($null -eq $script:UFLicences)
+        {
+            write-output "There are no licenses applied to this account."
+            $continue = read-host "Do you want to contine? YOU WILL SEE ERRORS. Y/N"
+            if ($continue -eq "Y")
+                {
 
-    (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_}
+
+                }
+            elseif ($continue -eq "N")
+                {
+
+                    exit
+
+                }
+            else
+                {
+
+                    removeLicences
+
+                }
+
+        }
+    else
+        {
+
+            (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicences $_}
+
+        }
+
 
 }
 
