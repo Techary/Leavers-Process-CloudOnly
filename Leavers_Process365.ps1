@@ -103,6 +103,8 @@ function get-upn {
 
     $global:upn = read-host "Leaver UPN"
 
+    $global:UserObject = Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue
+
     if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue)
         {
 
@@ -225,7 +227,7 @@ function Set-NewPassword {
     try
         {
 
-            Set-MsolUserPassword -UserPrincipalName $script:upn -NewPassword $SecureCloudPassword -ErrorAction Stop
+            Set-MsolUserPassword -UserPrincipalName $global:upn -NewPassword $SecureCloudPassword -ErrorAction Stop
 
         }
     catch
@@ -243,7 +245,7 @@ function revoke-365Access {
     try
         {
 
-            Revoke-AzureADUserAllRefreshToken -ObjectId $script:upn -ErrorAction Stop
+            Revoke-AzureADUserAllRefreshToken -ObjectId $global:UserObject.ObjectId -ErrorAction Stop
 
         }
     catch
