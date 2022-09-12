@@ -103,6 +103,8 @@ function get-upn {
 
     $global:upn = read-host "Leaver UPN"
 
+    $global:UserObject = Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue
+
     if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue)
         {
 
