@@ -35,9 +35,9 @@ function connect-365 {
 
         Connect-MsolService
 
-        Connect-ExchangeOnline
+        Connect-AzureAD | out-null
 
-        Connect-AzureAD
+        Connect-ExchangeOnline
 
         }
 
@@ -147,7 +147,7 @@ function removeLicences {
                             if($script:UFLicences -notcontains $licence.Product_Display_name)
                                 {
 
-                                    $script:UFLicences.add($licence.Product_Display_name)
+                                    $script:UFLicences.add($licence.Product_Display_name) | out-null
 
                                 }
 
@@ -220,12 +220,10 @@ function Set-NewPassword {
 
     $Script:NewCloudPassword = get-newpassphrase
 
-    $SecureCloudPassword = ConvertTo-SecureString $Script:NewCloudPassword -AsPlainText -force
-
     try
         {
 
-            Set-MsolUserPassword -UserPrincipalName $script:upn -NewPassword $SecureCloudPassword -ErrorAction Stop
+            Set-MsolUserPassword -UserPrincipalName $global:upn -NewPassword $Script:NewCloudPassword -ErrorAction Stop -ForceChangePassword $false | Out-Null
 
         }
     catch
@@ -243,7 +241,7 @@ function revoke-365Access {
     try
         {
 
-            Revoke-AzureADUserAllRefreshToken -ObjectId $script:upn -ErrorAction Stop
+            Revoke-AzureADUserAllRefreshToken -ObjectId ((get-msoluser -UserPrincipalName $global:upn).ObjectId) -ErrorAction Stop
 
         }
     catch
@@ -251,6 +249,7 @@ function revoke-365Access {
 
             write-output "Unable to remove refresh tokens"
             $_.exception
+            $script:refreshTokenError = $true
 
         }
 
@@ -591,62 +590,79 @@ function Add-MailboxForwarding{
 
 function write-result {
 
-        write-host "You have done the following:"
+    clear
 
-        write-host "`nRemoved the following licences:"
-        $script:UFLicences
+    write-host "You have done the following:"
 
-        if ($script:hideFromGAL -eq 'N')
-            {
-                write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."
-            }
-        else
-            {
-                write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."
-            }
+    if ($null -eq $script:UFLicences)
+        {
 
-        if($script:removeDisitri -eq 'N')
-            {
-                write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"
-            }
-        else
-            {
-                write-host -ForegroundColor Green "`nYou have removed $global:upn from any distribution groups."
-            }
+            write-host -ForegroundColor Red "No licences have been removed from the account. Please manually review."
 
-        if ($script:autoreply -eq 'N')
-            {
-                write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"
-            }
-        else
-            {
-                write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"
-            }
+        }
+    else
+        {
 
-        if($script:mailboxpermissions -eq 'N')
-            {
-                write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"
-            }
-        else
-            {
-                write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"
-            }
-        if($script:mailboxforwarding -eq 'N')
-            {
-                write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"
-            }
-        else
-            {
-                write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"
-            }
+            write-host "`nRemoved the following licence(s):"
+            $script:UFLicences
 
-        write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
+        }
 
-        Write-Host "A transcript of all the actions taken in this script can be found at $psscriptroot\$script:upn.txt"
+    if ($script:hideFromGAL -eq 'N')
+        {
+            write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."
+        }
+    else
+        {
+            write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."
+        }
 
+    if($script:removeDisitri -eq 'N')
+        {
+            write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"
+        }
+    else
+        {
+            write-host -ForegroundColor Green "`nYou have removed $global:upn from any distribution groups."
+        }
 
-        pause
+    if ($script:autoreply -eq 'N')
+        {
+            write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"
+        }
+    else
+        {
+            write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"
+        }
 
+    if($script:mailboxpermissions -eq 'N')
+        {
+            write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"
+        }
+    else
+        {
+            write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"
+        }
+    if($script:mailboxforwarding -eq 'N')
+        {
+            write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"
+        }
+    else
+        {
+            write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"
+        }
+    if ($script:refreshTokenError -eq $true)
+        {
+
+            write-host -ForegroundColor red "Failed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
+
+        }
+
+    write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
+
+    Write-Host "A transcript of all the actions taken in this script can be found at $psscriptroot\$script:upn.txt"
+
+    pause
 
 }
 
@@ -672,7 +688,7 @@ connect-365
 
 get-upn
 
-Start-Transcript ".\$global:upn.txt"
+Start-Transcript "$psscriptroot\$script:upn.txt"
 
 removeLicences
 
@@ -683,5 +699,9 @@ Set-NewPassword
 revoke-365Access
 
 Remove-GAL
+
+Disconnect-ExchangeOnline -Confirm:$false
+
+Disconnect-AzureAD
 
 Stop-Transcript
