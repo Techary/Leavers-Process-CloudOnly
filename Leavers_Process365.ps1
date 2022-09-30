@@ -688,7 +688,7 @@ connect-365
 
 get-upn
 
-Start-Transcript "$psscriptroot\$script:upn.txt"
+Start-Transcript "$psscriptroot\$global:upn.txt"
 
 removeLicences
 
