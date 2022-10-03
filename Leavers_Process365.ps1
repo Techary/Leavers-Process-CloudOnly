@@ -654,13 +654,13 @@ function write-result {
     if ($script:refreshTokenError -eq $true)
         {
 
-            write-host -ForegroundColor red "Failed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
+            write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
 
         }
 
-    write-host -ForegroundColor green "Set password to $script:NewCloudPassword"
+    write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
 
-    Write-Host "A transcript of all the actions taken in this script can be found at $psscriptroot\$script:upn.txt"
+    Write-Host "A transcript of all the actions taken in this script can be found at $psscriptroot\$global:upn.txt"
 
     pause
 
