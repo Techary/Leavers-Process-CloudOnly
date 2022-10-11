@@ -543,7 +543,7 @@ function Add-MailboxForwarding{
                                 try
                                     {
 
-                                        Set-Mailbox $script:upn -ForwardingAddress $script:WhichUserForwarding -erroraction stop
+                                        Set-Mailbox $global:upn -ForwardingAddress $script:WhichUserForwarding -erroraction stop
 
                                     }
                                 catch
@@ -571,7 +571,7 @@ function Add-MailboxForwarding{
 
                                 Write-output "$script:WhichUserForwarding not found. Please try again"
                                 start-sleep 3
-                                Add-MailboxPermissions
+                                Add-MailboxForwarding
 
                             }
 
