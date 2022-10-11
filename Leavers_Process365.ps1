@@ -228,8 +228,10 @@ function Set-NewPassword {
         }
     catch
         {
+
             write-output "Unable to set password"
             $_.exception
+
         }
 
 
@@ -284,7 +286,7 @@ function Remove-GAL {
 
                                         write-host "Unable to hide from GAL"
                                         $_.exception
-                                        $GALError = $true
+                                        $script:GALError = $true
 
                                     }
                                 finally
@@ -359,7 +361,7 @@ function remove-distributionGroups {
 
                                         Write-Output "Unable to remove from $($item.displayname)"
                                         $_.exception
-                                        $RemovalException = $true
+                                        $script:RemovalException = $true
                                     }
                                 finally
                                     {
@@ -415,7 +417,7 @@ function Add-Autoreply {
                     {
                         Write-output "Unable to set auto-reply"
                         $_.exception
-                        $AutoReplyError
+                        $script:AutoReplyError = $true
                     }
                 finally
                     {
@@ -483,7 +485,7 @@ function Add-MailboxPermissions{
 
                                         write-output "Unable to add permissions"
                                         $_.exception
-                                        $MailboxError = $true
+                                        $script:MailboxError = $true
 
                                     }
                                 finally
@@ -551,12 +553,12 @@ function Add-MailboxForwarding{
 
                                         write-output "Unable to add permissions"
                                         $_.exception
-                                        $MailboxError = $true
+                                        $script:ForwardingError = $true
 
                                     }
                                 finally
                                     {
-                                        if($null -eq $MailboxError)
+                                        if($null -eq $script:ForwardingError)
                                             {
 
                                                 Write-host "Malibox forwarding to $script:WhichUserForwarding has been added"
@@ -610,46 +612,96 @@ function write-result {
 
     if ($script:hideFromGAL -eq 'N')
         {
+
             write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."
+
+        }
+    elseif ($script:GALError -eq $true)
+        {
+
+            write-host -ForegroundColor Red "`nThere was an error hiding the GAL. Please review the log $psscriptroot\$global:upn.txt"
+
         }
     else
         {
+
             write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."
+
         }
 
     if($script:removeDisitri -eq 'N')
         {
+
             write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"
+
+        }
+    elseif ($script:RemovalException -eq $true)
+        {
+
+            write-host -ForegroundColor Red "`nThere was an error remove from some distribution lists. Please review the log $psscriptroot\$global:upn.txt"
+
         }
     else
         {
+
             write-host -ForegroundColor Green "`nYou have removed $global:upn from any distribution groups."
+
         }
 
     if ($script:autoreply -eq 'N')
         {
+
             write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"
+
+        }
+    elseif ($script:AutoReplyError -eq $true)
+        {
+
+            Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$global:upn.txt"
+
         }
     else
         {
+
             write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"
+
         }
 
     if($script:mailboxpermissions -eq 'N')
         {
+
             write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"
+
+        }
+    elseif ($script:MailboxError -eq $true)
+        {
+
+            Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$global:upn.txt"
+
         }
     else
         {
+
             write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"
+
         }
     if($script:mailboxforwarding -eq 'N')
         {
+
             write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"
+
+        }
+    elseif ($script:ForwardingError -eq $true)
+        {
+
+            write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$global:upn.txt"
+
         }
     else
         {
+
             write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"
+
         }
     if ($script:refreshTokenError -eq $true)
         {
