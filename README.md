@@ -14,5 +14,3 @@
 
 
 #### You must sign in to 3 different log in boxes. This is due to the three different PS modules that 365 has for manipulating different parts. WIP to migrate this script to use MS Graph, however Graph is missing too many features for this to take up too much of my attention.
-
-Teams integration test take 2 electric boog-aloo
