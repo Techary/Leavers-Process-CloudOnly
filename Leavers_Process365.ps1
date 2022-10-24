@@ -291,6 +291,7 @@ function Remove-GAL {
                                     }
                                 finally
                                     {
+
                                         if($null -eq $GALError)
                                             {
 
@@ -597,121 +598,121 @@ function write-result {
     write-host "You have done the following:"
 
     switch ($script:UFLicences)
-    {
+        {
 
-        $null {write-host -ForegroundColor Red "No licences have been removed from the account. Please manually review."}
-        default {write-host "`nRemoved the following licence(s):" ; $script:UFLicences}
+            $null {write-host -ForegroundColor Red "No licences have been removed from the account. Please manually review."}
+            default {write-host "`nRemoved the following licence(s):" ; $script:UFLicences}
 
-    }
+        }
 
-switch ($script:GALError)
-    {
+    switch ($script:GALError)
+        {
 
-        $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$global:upn.txt"}
-        default
-            {
+            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$global:upn.txt"}
+            default
+                {
 
-                switch ($script:hideFromGAL)
-                    {
+                    switch ($script:hideFromGAL)
+                        {
 
-                        N {write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."}
-                        Y {write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."}
+                            N {write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."}
+                            Y {write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."}
 
-                    }
+                        }
 
-            }
+                }
 
-    }
+        }
 
-switch ($script:RemovalException)
-    {
+    switch ($script:RemovalException)
+        {
 
-        $true {write-host -ForegroundColor Red "`nThere was an error removing $global:upn from some distribution lists. Please review the log $psscriptroot\$global:upn.txt"}
-        default
-            {
+            $true {write-host -ForegroundColor Red "`nThere was an error removing $global:upn from some distribution lists. Please review the log $psscriptroot\$global:upn.txt"}
+            default
+                {
 
-                switch ($script:removeDisitri)
-                    {
+                    switch ($script:removeDisitri)
+                        {
 
-                        Y {write-host -ForegroundColor Green "`nYou have removed $global:upn from all distribution groups."}
-                        N {write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"}
+                            Y {write-host -ForegroundColor Green "`nYou have removed $global:upn from all distribution groups."}
+                            N {write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"}
 
-                    }
+                        }
 
-            }
+                }
 
-    }
-
-
-switch ($script:AutoReplyError)
-    {
-
-        $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$global:upn.txt"}
-        default
-            {
-
-                switch ($script:autoreply)
-                    {
-
-                        N {write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"}
-                        Y {write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"}
-
-                    }
-
-            }
-
-    }
+        }
 
 
-switch ($script:MailboxError)
-    {
+    switch ($script:AutoReplyError)
+        {
 
-        $true {Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$global:upn.txt"}
-        default
-            {
+            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$global:upn.txt"}
+            default
+                {
 
-                switch ($script:mailboxpermissions)
-                    {
-                        N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"}
-                        Y {write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"}
+                    switch ($script:autoreply)
+                        {
 
-                    }
+                            N {write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"}
+                            Y {write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"}
 
-            }
+                        }
 
-    }
+                }
 
-switch ($script:ForwardingError)
-    {
-
-        $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$global:upn.txt"}
-        default
-            {
-
-                switch ($script:mailboxForwarding)
-                    {
-
-                        N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"}
-                        Y {write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"}
-
-                    }
-
-            }
-
-    }
+        }
 
 
-if ($script:refreshTokenError -eq $true)
-    {
+    switch ($script:MailboxError)
+        {
 
-        write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
+            $true {Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$global:upn.txt"}
+            default
+                {
 
-    }
-    write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
+                    switch ($script:mailboxpermissions)
+                        {
+                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"}
+                            Y {write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"}
 
-    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$global:upn.txt"
+                        }
 
-    pause
+                }
+
+        }
+
+    switch ($script:ForwardingError)
+        {
+
+            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$global:upn.txt"}
+            default
+                {
+
+                    switch ($script:mailboxForwarding)
+                        {
+
+                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"}
+                            Y {write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"}
+
+                        }
+
+                }
+
+        }
+
+
+    if ($script:refreshTokenError -eq $true)
+        {
+
+            write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
+
+        }
+        write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
+
+        Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$global:upn.txt"
+
+        pause
 
 }
 
