@@ -688,7 +688,7 @@ switch ($script:ForwardingError)
         default
             {
 
-                switch ($x)
+                switch ($script:mailboxForwarding)
                     {
 
                         N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"}
