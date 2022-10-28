@@ -21,23 +21,17 @@ write-host -ForegroundColor Green $logo
 
 }
 
-# Checks to see if AzureAD, MSOnline, and Exchangeonelinemanagement are installed.
+# Checks to see if MGGraph, and ExchangeOnelineManagement are installed.
 # If not, installs them. Then connects to 365 online
 function connect-365 {
 
     function invoke-mfaConnection{
 
-        Import-Module AzureAD
-
-        import-module MSOnline
-
-        import-module ExchangeOnlineManagement
-
-        Connect-MsolService
-
-        Connect-AzureAD | out-null
+        Select-MgProfile -Name "beta"
 
         Connect-ExchangeOnline -ShowBanner:$false
+
+        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All"
 
         }
 
@@ -51,59 +45,42 @@ function connect-365 {
 
         }
 
-    Function Get-MSonline{
+    function Get-MSGraphModule {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
 
-        Install-Module MSOnline -Scope CurrentUser
+        Install-Module -Name microsoft.graph -Scope CurrentUser
 
-        }
+        import-module microsoft.graph
 
-    Function Get-AzureAD{
+    }
 
-        Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
+    if (get-module -ListAvailable -Name microsoft.graph) {
+    }
+    else {
+        Write-host "MSGraph module does not exist. Attempting to download..."
+        Get-ExchangeOnlineManagement
+    }
 
-        Install-Module AzureAD -Scope CurrentUser -force -AllowClobber
-
-            }
 
     if (Get-Module -ListAvailable -Name ExchangeOnlineManagement) {
-        write-host " "
-        write-host "Exchange online Management exists"
     }
     else {
         Write-host "Exchange Online Management module does not exist. Attempting to download..."
         Get-ExchangeOnlineManagement
     }
 
-
-    if (Get-Module -ListAvailable -Name MSOnline) {
-        write-host "MSOnline exists"
-    }
-    else {
-        Write-host "MSOnline module does not exist. Attempting to download..."
-        Get-MSOnline
-    }
-
-
-    if (Get-Module -ListAvailable -Name AzureAD) {
-        write-host "AzureAD exists"
-    }
-    else {
-        Write-host "AzureAD module does not exist. Attempting to download..."
-        Get-AzureAD
-    }
-
 invoke-mfaConnection
 
 }
-# Asks for UPN
-# Then checks if the user exists in 365.
+
+# Asks for UPN, then checks if the user exists in 365.
 function get-upn {
 
-    $global:upn = read-host "Leaver UPN"
+    $upn = read-host "Leaver UPN"
+    $script:userObject = get-mguser -filter "UserPrincipalName eq '$upn'"
 
-    if (Get-MsolUser -UserPrincipalName $global:upn -ErrorAction SilentlyContinue)
+    if ($script:userObject)
         {
 
             Write-host "`nUser found!"
@@ -120,12 +97,12 @@ function get-upn {
 
         }
 
-    }
+}
 
 # Removes licences and converts the string ID to something we're more familiar with.
 function removeLicences {
 
-    $AssignedLicences = (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId
+    $AssignedLicences = (get-mguserlicenseDetail -userid $script:userObject.id).skupartnumber
 
     Invoke-WebRequest -uri https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv -outfile .\licences.csv | Out-Null
     $licences = import-csv .\licences.csv
@@ -135,8 +112,6 @@ function removeLicences {
 
     foreach ($Assignedlicence in $Assignedlicences)
         {
-
-            $Assignedlicence = $Assignedlicence.Split(':')[-1]
 
             foreach ($licence in $licences)
                 {
@@ -160,21 +135,13 @@ function removeLicences {
         {
             write-output "There are no licenses applied to this account."
             $continue = read-host "Do you want to contine? YOU WILL SEE ERRORS. Y/N"
-            if ($continue -eq "Y")
+            switch ($continue)
                 {
 
+                    Y {}
+                    N {write-result}
+                    default {removeLicences}
 
-                }
-            elseif ($continue -eq "N")
-                {
-
-                    write-result
-
-                }
-            else
-                {
-
-                    removeLicences
 
                 }
 
@@ -182,7 +149,7 @@ function removeLicences {
     else
         {
 
-            (get-MsolUser -UserPrincipalName $global:upn).licenses.AccountSkuId | foreach {Set-MsolUserLicense -UserPrincipalName $global:upn -RemoveLicenses $_}
+            Set-MgUserLicense -userID $script:userObject.id -RemoveLicenses $script:Assignedlicences
 
         }
 
@@ -223,7 +190,9 @@ function Set-NewPassword {
     try
         {
 
-            Set-MsolUserPassword -UserPrincipalName $global:upn -NewPassword $Script:NewCloudPassword -ErrorAction Stop -ForceChangePassword $false | Out-Null
+            $method = Get-MgUserAuthenticationPasswordMethod -UserId $script:userObject.id
+
+            Reset-MgUserAuthenticationMethodPassword -UserId $user.id-AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
 
         }
     catch
@@ -243,7 +212,7 @@ function revoke-365Access {
     try
         {
 
-            Revoke-AzureADUserAllRefreshToken -ObjectId ((get-msoluser -UserPrincipalName $global:upn).ObjectId) -ErrorAction Stop
+            Invoke-MgInvalidateUserRefreshToken -userid $script:userObject.id
 
         }
     catch
@@ -257,7 +226,7 @@ function revoke-365Access {
 
 }
 
-# Removes UPN from global address list.
+# Removes UPN from global address list. NOT MIGRATED
 function Remove-GAL {
 
         Do
@@ -278,7 +247,8 @@ function Remove-GAL {
                                 try
                                     {
 
-                                        Set-Mailbox -Identity $global:upn -HiddenFromAddressListsEnabled $true -ErrorAction stop
+                                        #Not migrated to MGGraph as there's a known issue with amending this property using Graph API
+                                        Set-Mailbox -Identity $script:userobject.userprincipalname -HiddenFromAddressListsEnabled $true -ErrorAction stop
 
                                     }
                                 catch
@@ -295,7 +265,7 @@ function Remove-GAL {
                                         if($null -eq $GALError)
                                             {
 
-                                                Write-host "$global:upn has been hidden"
+                                                Write-host "$script:userobject.userprincipalname has been hidden"
 
                                             }
 
@@ -319,7 +289,7 @@ function Remove-GAL {
 
 }
 
-# Lists all distri's and prompts to remove UPN from them or not
+# Lists all distri's and prompts to remove UPN from them or not. NOT MIGRATED
 function remove-distributionGroups {
 
     cls
@@ -330,7 +300,7 @@ function remove-distributionGroups {
     Write-host "** Distribution groups **"
     Write-host "*************************"
 
-    $mailbox = Get-Mailbox -Identity $global:upn
+    $mailbox = Get-Mailbox -Identity $script:userobject.userprincipalname
     $DN=$mailbox.DistinguishedName
     $Filter = "Members -like ""$DN"""
     $DistributionGroupsList = Get-DistributionGroup -ResultSize Unlimited -Filter $Filter
@@ -342,7 +312,7 @@ function remove-distributionGroups {
     Do
         {
 
-            $script:removeDisitri = Read-Host "Do you want to remove $global:upn from all distribution groups ( y / n )?"
+            $script:removeDisitri = Read-Host "Do you want to remove $script:userobject.userprincipalname from all distribution groups ( y / n )?"
             Switch ($script:removeDisitri)
             {
                 Y
@@ -354,7 +324,8 @@ function remove-distributionGroups {
                                 try
                                     {
 
-                                        Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $global:upn -BypassSecurityGroupManagerCheck -Confirm:$false -ErrorAction stop
+                                        #Not migrated to MGGraph as there's no native powershell function to manipulate groups
+                                        Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $script:userobject.userprincipalname -BypassSecurityGroupManagerCheck -Confirm:$false -ErrorAction stop
 
                                     }
                                 catch
@@ -391,7 +362,7 @@ function remove-distributionGroups {
 
 }
 
-# Prompts to add an auto response or not
+# Prompts to add an auto response or not. NOT MIGRATED
 function Add-Autoreply {
     Do
     {
@@ -403,7 +374,7 @@ function Add-Autoreply {
         Write-host "** Autoreply **"
         Write-host "***************"
 
-        $script:autoreply = Read-Host "Do you want to add an auto-reply to $global:upn's mailbox? ( y / n / dog ) "
+        $script:autoreply = Read-Host "Do you want to add an auto-reply to $script:userobject.userprincipalname's mailbox? ( y / n / dog ) "
         Switch ($script:autoreply)
         {
             Y { $oof = Read-Host "Enter auto-reply"
@@ -411,7 +382,8 @@ function Add-Autoreply {
                 try
                     {
 
-                        Set-MailboxAutoReplyConfiguration -Identity $global:upn -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof" -ErrorAction stop
+                        #Not supported in MGGraph yet
+                        Set-MailboxAutoReplyConfiguration -Identity $script:userobject.userprincipalname -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof" -ErrorAction stop
 
                     }
                 catch
@@ -455,7 +427,7 @@ function Add-Autoreply {
     until ($script:autoreply -eq 'y' -or $script:autoreply -eq 'n' -or $script:autoreply -eq 'Dog')
 }
 
-# Prompts to add mailbox permissions or not
+# Prompts to add mailbox permissions or not. NOT MIGRATED
 function Add-MailboxPermissions{
     Do
         {
@@ -478,7 +450,7 @@ function Add-MailboxPermissions{
                                 try
                                     {
 
-                                        add-mailboxpermission -identity $global:upn -user $script:WhichUserPermissions -AccessRights FullAccess -erroraction stop
+                                        add-mailboxpermission -identity $script:userobject.userprincipalname -user $script:WhichUserPermissions -AccessRights FullAccess -erroraction stop
 
                                     }
                                 catch
@@ -523,7 +495,7 @@ function Add-MailboxPermissions{
 
 }
 
-# Prompts to add mailbox forwarding or not
+# Prompts to add mailbox forwarding or not. NOT MIGRATED
 function Add-MailboxForwarding{
     Do
         {
@@ -546,7 +518,7 @@ function Add-MailboxForwarding{
                                 try
                                     {
 
-                                        Set-Mailbox $global:upn -ForwardingAddress $script:WhichUserForwarding -erroraction stop
+                                        Set-Mailbox $script:userobject.userprincipalname -ForwardingAddress $script:WhichUserForwarding -erroraction stop
 
                                     }
                                 catch
@@ -608,15 +580,15 @@ function write-result {
     switch ($script:GALError)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$global:upn.txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
             default
                 {
 
                     switch ($script:hideFromGAL)
                         {
 
-                            N {write-host -ForegroundColor Yellow "`nYou have not hidden $global:upn from the global address list."}
-                            Y {write-host -ForegroundColor Green  "`nYou have hidden $global:upn from the global address list."}
+                            N {write-host -ForegroundColor Yellow "`nYou have not hidden $script:userobject.userprincipalname from the global address list."}
+                            Y {write-host -ForegroundColor Green  "`nYou have hidden $script:userobject.userprincipalname from the global address list."}
 
                         }
 
@@ -627,15 +599,15 @@ function write-result {
     switch ($script:RemovalException)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error removing $global:upn from some distribution lists. Please review the log $psscriptroot\$global:upn.txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error removing $script:userobject.userprincipalname from some distribution lists. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
             default
                 {
 
                     switch ($script:removeDisitri)
                         {
 
-                            Y {write-host -ForegroundColor Green "`nYou have removed $global:upn from all distribution groups."}
-                            N {write-host -ForegroundColor Yellow "`nYou have not removed $global:upn from all distribution groups"}
+                            Y {write-host -ForegroundColor Green "`nYou have removed $script:userobject.userprincipalname from all distribution groups."}
+                            N {write-host -ForegroundColor Yellow "`nYou have not removed $script:userobject.userprincipalname from all distribution groups"}
 
                         }
 
@@ -647,15 +619,15 @@ function write-result {
     switch ($script:AutoReplyError)
         {
 
-            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$global:upn.txt"}
+            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
             default
                 {
 
                     switch ($script:autoreply)
                         {
 
-                            N {write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $global:upn"}
-                            Y {write-host -ForegroundColor Green "`nYou have added an autoreply to $global:upn"}
+                            N {write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $script:userobject.userprincipalname"}
+                            Y {write-host -ForegroundColor Green "`nYou have added an autoreply to $script:userobject.userprincipalname"}
 
                         }
 
@@ -667,14 +639,14 @@ function write-result {
     switch ($script:MailboxError)
         {
 
-            $true {Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$global:upn.txt"}
+            $true {Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
             default
                 {
 
                     switch ($script:mailboxpermissions)
                         {
-                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $global:upn"}
-                            Y {write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $global:upn"}
+                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $script:userobject.userprincipalname"}
+                            Y {write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $script:userobject.userprincipalname"}
 
                         }
 
@@ -685,14 +657,14 @@ function write-result {
     switch ($script:ForwardingError)
         {
 
-            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$global:upn.txt"}
+            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
             default
                 {
 
                     switch ($script:mailboxForwarding)
                         {
 
-                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $global:upn"}
+                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $script:userobject.userprincipalname"}
                             Y {write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"}
 
                         }
@@ -708,11 +680,12 @@ function write-result {
             write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
 
         }
-        write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
 
-        Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$global:upn.txt"
+    write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
 
-        pause
+    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$script:userobject.userprincipalname.txt"
+
+    pause
 
 }
 
@@ -730,7 +703,7 @@ function CountDown() {
 
 # ---------------------- START SCRIPT ----------------------
 
-$global:upn = $null
+$VerbosePreference = 'Continue'
 
 print-TecharyLogo
 
@@ -738,14 +711,14 @@ connect-365
 
 get-upn
 
-Start-Transcript "$psscriptroot\$global:upn.txt"
+Start-Transcript "$psscriptroot\$($script:userobject.userprincipalname).txt"
 
 removeLicences
 
-Set-Mailbox $global:upn -Type Shared
+Set-Mailbox $script:userobject.userprincipalname -Type Shared
 
 write-host -nonewline "Converting mailbox, please wait..."
-while ((get-mailbox $global:upn -ErrorAction SilentlyContinue).RecipientTypeDetails -ne "SharedMailbox")
+while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyContinue).RecipientTypeDetails -ne "SharedMailbox")
     {
 
         CountDown 1
@@ -760,6 +733,6 @@ Remove-GAL
 
 Disconnect-ExchangeOnline -Confirm:$false
 
-Disconnect-AzureAD
+Disconnect-MgGraph
 
 Stop-Transcript
