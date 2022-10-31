@@ -59,7 +59,7 @@ function connect-365 {
     }
     else {
         Write-host "MSGraph module does not exist. Attempting to download..."
-        Get-ExchangeOnlineManagement
+        Get-MSGraphModule
     }
 
 
