@@ -28,9 +28,7 @@ function connect-365 {
     function invoke-mfaConnection{
 
         Select-MgProfile -Name "beta"
-
         Connect-ExchangeOnline -ShowBanner:$false
-
         Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All"
 
         }
@@ -38,9 +36,7 @@ function connect-365 {
     function Get-ExchangeOnlineManagement{
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
-
         Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser
-
         import-module ExchangeOnlineManagement
 
         }
@@ -48,7 +44,6 @@ function connect-365 {
     function Get-MSGraphModule {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
-
         Install-Module -Name microsoft.graph -Scope CurrentUser | out-null
 
     }
@@ -141,7 +136,6 @@ function removeLicences {
                     N {write-result}
                     default {removeLicences}
 
-
                 }
 
         }
@@ -159,24 +153,18 @@ function removeLicences {
 function get-newpassphrase {
 
     $SpecialCharacter = @("!","`$","%","^","&","*","'","@","~","#")
-
     $ieObject = New-Object -ComObject 'InternetExplorer.Application'
-
     $ieObject.Navigate('https://www.worksighted.com/random-passphrase-generator/')
-
     while ($ieobject.ReadyState -ne 4)
             {
 
                     start-sleep -Milliseconds 1
 
             }
-
     $currentDocument = $ieObject.Document
-
     $password = ($currentDocument.IHTMLDocument3_getElementsByTagName("input") | Where-Object {$_.id -eq "txt"}).value
     $password = $password.Split(' ')[-4..-1]
     $password = -join($password[0],$password[1],$password[2],$password[3],($SpecialCharacter | Get-Random))
-
     write-output $password
 
 }
@@ -185,12 +173,10 @@ function get-newpassphrase {
 function Set-NewPassword {
 
     $Script:NewCloudPassword = get-newpassphrase
-
     try
         {
 
             $method = Get-MgUserAuthenticationPasswordMethod -UserId $script:userObject.id
-
             Reset-MgUserAuthenticationMethodPassword -UserId $user.id -AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
 
         }
@@ -233,7 +219,6 @@ function Remove-GAL {
                 cls
 
                 print-TecharyLogo
-
                 Write-host "**********************"
                 Write-host "** Remove from GAL  **"
                 Write-Host "**********************"
@@ -292,13 +277,10 @@ function Remove-GAL {
 function remove-distributionGroups {
 
     cls
-
     print-TecharyLogo
-
     Write-host "*************************"
     Write-host "** Distribution groups **"
     Write-host "*************************"
-
     $mailbox = Get-Mailbox -Identity $script:userobject.userprincipalname
     $DN=$mailbox.DistinguishedName
     $Filter = "Members -like ""$DN"""
@@ -333,6 +315,7 @@ function remove-distributionGroups {
                                         Write-Output "Unable to remove from $($item.displayname)"
                                         $_.exception
                                         $script:RemovalException = $true
+
                                     }
                                 finally
                                     {
@@ -366,13 +349,10 @@ function Add-Autoreply {
     Do
     {
         cls
-
         print-TecharyLogo
-
         Write-Host "***************"
         Write-host "** Autoreply **"
         Write-host "***************"
-
         $script:autoreply = Read-Host "Do you want to add an auto-reply to $script:userobject.userprincipalname's mailbox? ( y / n / dog ) "
         Switch ($script:autoreply)
         {
@@ -390,6 +370,7 @@ function Add-Autoreply {
                         Write-output "Unable to set auto-reply"
                         $_.exception
                         $script:AutoReplyError = $true
+
                     }
                 finally
                     {
@@ -431,13 +412,10 @@ function Add-MailboxPermissions{
     Do
         {
             cls
-
             print-TecharyLogo
-
             Write-host "*************************"
             Write-host "** Mailbox Permissions **"
             Write-Host "*************************"
-
             $script:mailboxpermissions = Read-Host "Do you want anyone to have access to this mailbox? ( y / n ) "
             Switch ($script:mailboxpermissions)
                 {
@@ -499,13 +477,10 @@ function Add-MailboxForwarding{
     Do
         {
             cls
-
             print-TecharyLogo
-
             Write-host "*************************"
             Write-host "** Mailbox Forwarding **"
             Write-Host "*************************"
-
             $script:mailboxForwarding = Read-Host "Do you want any forwarding in place on this account? ( y / n ) "
             Switch ($script:mailboxForwarding)
                 {
@@ -565,9 +540,7 @@ function Add-MailboxForwarding{
 function write-result {
 
     clear
-
     write-host "You have done the following:"
-
     switch ($script:UFLicences)
         {
 
@@ -575,7 +548,6 @@ function write-result {
             default {write-host "`nRemoved the following licence(s):" ; $script:UFLicences}
 
         }
-
     switch ($script:GALError)
         {
 
@@ -613,8 +585,6 @@ function write-result {
                 }
 
         }
-
-
     switch ($script:AutoReplyError)
         {
 
@@ -633,8 +603,6 @@ function write-result {
                 }
 
         }
-
-
     switch ($script:MailboxError)
         {
 
@@ -652,7 +620,6 @@ function write-result {
                 }
 
         }
-
     switch ($script:ForwardingError)
         {
 
@@ -681,9 +648,7 @@ function write-result {
         }
 
     write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
-
     Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
-
     pause
 
 }
@@ -703,15 +668,10 @@ function CountDown() {
 # ---------------------- START SCRIPT ----------------------
 
 print-TecharyLogo
-
 connect-365
-
 get-upn
-
 Start-Transcript "$psscriptroot\$($script:userobject.userprincipalname).txt"
-
 removeLicences
-
 write-host -nonewline "Converting mailbox, please wait..."
 Set-Mailbox $script:userobject.userprincipalname -Type Shared
 while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyContinue).RecipientTypeDetails -ne "SharedMailbox")
@@ -720,15 +680,9 @@ while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyCo
         CountDown 1
 
     }
-
 Set-NewPassword
-
 revoke-365Access
-
 Remove-GAL
-
 Disconnect-ExchangeOnline -Confirm:$false
-
 Disconnect-MgGraph
-
 Stop-Transcript
