@@ -31,7 +31,7 @@ function connect-365 {
 
         Connect-ExchangeOnline -ShowBanner:$false
 
-        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All"
+        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All"
 
         }
 
@@ -190,7 +190,7 @@ function Set-NewPassword {
 
             $method = Get-MgUserAuthenticationPasswordMethod -UserId $script:userObject.id
 
-            Reset-MgUserAuthenticationMethodPassword -UserId $user.id-AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
+            Reset-MgUserAuthenticationMethodPassword -UserId $user.id -AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
 
         }
     catch
@@ -578,15 +578,15 @@ function write-result {
     switch ($script:GALError)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
                     switch ($script:hideFromGAL)
                         {
 
-                            N {write-host -ForegroundColor Yellow "`nYou have not hidden $script:userobject.userprincipalname from the global address list."}
-                            Y {write-host -ForegroundColor Green  "`nYou have hidden $script:userobject.userprincipalname from the global address list."}
+                            N {write-host -ForegroundColor Yellow "`nYou have not hidden $($script:userobject.userprincipalname) from the global address list."}
+                            Y {write-host -ForegroundColor Green  "`nYou have hidden $($script:userobject.userprincipalname) from the global address list."}
 
                         }
 
@@ -597,15 +597,15 @@ function write-result {
     switch ($script:RemovalException)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error removing $script:userobject.userprincipalname from some distribution lists. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error removing $($script:userobject.userprincipalname) from some distribution lists. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
                     switch ($script:removeDisitri)
                         {
 
-                            Y {write-host -ForegroundColor Green "`nYou have removed $script:userobject.userprincipalname from all distribution groups."}
-                            N {write-host -ForegroundColor Yellow "`nYou have not removed $script:userobject.userprincipalname from all distribution groups"}
+                            Y {write-host -ForegroundColor Green "`nYou have removed $($script:userobject.userprincipalname) from all distribution groups."}
+                            N {write-host -ForegroundColor Yellow "`nYou have not removed $($script:userobject.userprincipalname) from all distribution groups"}
 
                         }
 
@@ -617,15 +617,15 @@ function write-result {
     switch ($script:AutoReplyError)
         {
 
-            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
+            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
                     switch ($script:autoreply)
                         {
 
-                            N {write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $script:userobject.userprincipalname"}
-                            Y {write-host -ForegroundColor Green "`nYou have added an autoreply to $script:userobject.userprincipalname"}
+                            N {write-host -ForegroundColor Yellow "`nYou have not added an autoreply to $($script:userobject.userprincipalname)"}
+                            Y {write-host -ForegroundColor Green "`nYou have added an autoreply to $($script:userobject.userprincipalname)"}
 
                         }
 
@@ -637,14 +637,14 @@ function write-result {
     switch ($script:MailboxError)
         {
 
-            $true {Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
+            $true {Write-Host -ForegroundColor red "`nThere was an error adding the mailbox permissions. Please review the log $psscriptroot\$($script:userobject.userprincipalname)"}
             default
                 {
 
                     switch ($script:mailboxpermissions)
                         {
-                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $script:userobject.userprincipalname"}
-                            Y {write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $script:userobject.userprincipalname"}
+                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox permissions to $($script:userobject.userprincipalname)"}
+                            Y {write-host -ForegroundColor Green "`nYou have added mailbox permissions for $script:whichuserPermissions to $($script:userobject.userprincipalname)"}
 
                         }
 
@@ -655,14 +655,14 @@ function write-result {
     switch ($script:ForwardingError)
         {
 
-            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$script:userobject.userprincipalname.txt"}
+            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
                     switch ($script:mailboxForwarding)
                         {
 
-                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $script:userobject.userprincipalname"}
+                            N {write-host -ForegroundColor Yellow "`nYou have not added any mailbox forwarding to $($script:userobject.userprincipalname)"}
                             Y {write-host -ForegroundColor Green "`nYou have added mailbox forwarding to $script:WhichUserForwarding"}
 
                         }
@@ -681,7 +681,7 @@ function write-result {
 
     write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
 
-    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$script:userobject.userprincipalname.txt"
+    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
 
     pause
 
@@ -711,9 +711,8 @@ Start-Transcript "$psscriptroot\$($script:userobject.userprincipalname).txt"
 
 removeLicences
 
-Set-Mailbox $script:userobject.userprincipalname -Type Shared
-
 write-host -nonewline "Converting mailbox, please wait..."
+Set-Mailbox $script:userobject.userprincipalname -Type Shared
 while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyContinue).RecipientTypeDetails -ne "SharedMailbox")
     {
 
