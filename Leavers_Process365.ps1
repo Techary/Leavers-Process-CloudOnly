@@ -49,9 +49,7 @@ function connect-365 {
 
         Set-PSRepository -Name "PSgallery" -InstallationPolicy Trusted
 
-        Install-Module -Name microsoft.graph -Scope CurrentUser
-
-        import-module microsoft.graph
+        Install-Module -Name microsoft.graph -Scope CurrentUser | out-null
 
     }
 
@@ -702,8 +700,6 @@ function CountDown() {
 }
 
 # ---------------------- START SCRIPT ----------------------
-
-$VerbosePreference = 'Continue'
 
 print-TecharyLogo
 
