@@ -131,7 +131,8 @@ function removeLicences {
         }
     if ($script:UFLicences.count -eq 0)
         {
-            write-output "There are no licenses applied to this account."
+            clear-host
+            write-host -ForegroundColor red "There are no licenses applied to this account."
             $continue = read-host "Do you want to contine? YOU WILL SEE ERRORS. Y/N"
             switch ($continue)
                 {
