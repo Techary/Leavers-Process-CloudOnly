@@ -48,20 +48,30 @@ function connect-365 {
 
     }
 
-    if (get-module -ListAvailable -Name microsoft.graph) {
-    }
-    else {
-        Write-host "MSGraph module does not exist. Attempting to download..."
-        Get-MSGraphModule
-    }
+    if (get-module -ListAvailable -Name microsoft.graph)
+        {
+
+        }
+    else
+        {
+
+            Write-host "MSGraph module does not exist. Attempting to download..."
+            Get-MSGraphModule
+
+        }
 
 
-    if (Get-Module -ListAvailable -Name ExchangeOnlineManagement) {
-    }
-    else {
-        Write-host "Exchange Online Management module does not exist. Attempting to download..."
-        Get-ExchangeOnlineManagement
-    }
+    if (Get-Module -ListAvailable -Name ExchangeOnlineManagement)
+        {
+
+        }
+    else
+        {
+
+            Write-host "Exchange Online Management module does not exist. Attempting to download..."
+            Get-ExchangeOnlineManagement
+
+        }
 
 invoke-mfaConnection
 
@@ -95,7 +105,7 @@ function get-upn {
 # Removes licences and converts the string ID to something we're more familiar with.
 function removeLicences {
 
-    $AssignedLicences = (get-mguserlicenseDetail -userid $script:userObject.id).skupartnumber
+    $AssignedLicences = (get-mguserlicenseDetail -userid $script:userObject.id)
 
     Invoke-WebRequest -uri https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv -outfile .\licences.csv | Out-Null
     $licences = import-csv .\licences.csv
@@ -109,7 +119,7 @@ function removeLicences {
             foreach ($licence in $licences)
                 {
 
-                    if ($Assignedlicence -like $licence.String_id)
+                    if ($Assignedlicence.skupartnumber -like $licence.String_id)
                         {
 
                             if($script:UFLicences -notcontains $licence.Product_Display_name)
@@ -126,6 +136,7 @@ function removeLicences {
         }
     if ($script:UFLicences.count -eq 0)
         {
+
             clear-host
             write-host -ForegroundColor red "There are no licenses applied to this account."
             $continue = read-host "Do you want to contine? YOU WILL SEE ERRORS. Y/N"
@@ -142,10 +153,9 @@ function removeLicences {
     else
         {
 
-            Set-MgUserLicense -userID $script:userObject.id -RemoveLicenses $script:Assignedlicences
+            Set-MgUserLicense -userID $script:userObject.id -AddLicenses @() -RemoveLicenses @($Assignedlicences.skuid)
 
         }
-
 
 }
 
@@ -163,8 +173,9 @@ function get-newpassphrase {
             }
     $currentDocument = $ieObject.Document
     $password = ($currentDocument.IHTMLDocument3_getElementsByTagName("input") | Where-Object {$_.id -eq "txt"}).value
-    $password = $password.Split(' ')[-4..-1]
-    $password = -join($password[0],$password[1],$password[2],$password[3],($SpecialCharacter | Get-Random))
+    $password = $password -replace "^[A-Za-z1-9]+\s"
+    $password = $password -replace " "
+    $password = -join($password,($SpecialCharacter | Get-Random))
     write-output $password
 
 }
@@ -177,7 +188,7 @@ function Set-NewPassword {
         {
 
             $method = Get-MgUserAuthenticationPasswordMethod -UserId $script:userObject.id
-            Reset-MgUserAuthenticationMethodPassword -UserId $user.id -AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
+            Reset-MgUserAuthenticationMethodPassword -UserId $script:userObject.id -AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
 
         }
     catch
@@ -187,7 +198,6 @@ function Set-NewPassword {
             $_.exception
 
         }
-
 
 }
 
@@ -216,15 +226,14 @@ function Remove-GAL {
 
         Do
             {
-                cls
 
+                Clear-Host
                 print-TecharyLogo
                 Write-host "**********************"
                 Write-host "** Remove from GAL  **"
                 Write-Host "**********************"
-
-                    $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
-                    Switch ($script:hideFromGAL)
+                $script:hideFromGAL  = Read-Host "Do you want to remove the mailbox from the global address list? ( y / n ) "
+                Switch ($script:hideFromGAL)
                     {
                         Y
                             {
@@ -276,7 +285,7 @@ function Remove-GAL {
 # Lists all distri's and prompts to remove UPN from them or not. NOT MIGRATED
 function remove-distributionGroups {
 
-    cls
+    Clear-Host
     print-TecharyLogo
     Write-host "*************************"
     Write-host "** Distribution groups **"
@@ -289,119 +298,118 @@ function remove-distributionGroups {
     Write-host "Listing all Distribution Groups:"
     Write-host `n
     $DistributionGroupsList | ft
-
     Do
         {
 
             $script:removeDisitri = Read-Host "Do you want to remove $script:userobject.userprincipalname from all distribution groups ( y / n )?"
             Switch ($script:removeDisitri)
-            {
-                Y
+                {
+                    Y
                     {
-                        ForEach ($item in $DistributionGroupsList)
-                            {
-                                $RemovalException = $false
+                            ForEach ($item in $DistributionGroupsList)
+                                {
+                                    $RemovalException = $false
 
-                                try
-                                    {
+                                    try
+                                        {
 
-                                        #Not migrated to MGGraph as there's no native powershell function to manipulate groups
-                                        Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $script:userobject.userprincipalname -BypassSecurityGroupManagerCheck -Confirm:$false -ErrorAction stop
+                                            #Not migrated to MGGraph as there's no native powershell function to manipulate groups
+                                            Remove-DistributionGroupMember -Identity $item.PrimarySmtpAddress -Member $script:userobject.userprincipalname -BypassSecurityGroupManagerCheck -Confirm:$false -ErrorAction stop
 
-                                    }
-                                catch
-                                    {
+                                        }
+                                    catch
+                                        {
 
-                                        Write-Output "Unable to remove from $($item.displayname)"
-                                        $_.exception
-                                        $script:RemovalException = $true
+                                            Write-Output "Unable to remove from $($item.displayname)"
+                                            $_.exception
+                                            $script:RemovalException = $true
 
-                                    }
-                                finally
-                                    {
-                                        if($RemovalException -eq $false)
-                                            {
+                                        }
+                                    finally
+                                        {
+                                            if($RemovalException -eq $false)
+                                                {
 
-                                                Write-host "Successfully removed from $($item.DisplayName)"
+                                                    Write-host "Successfully removed from $($item.DisplayName)"
 
-                                            }
-                                    }
+                                                }
+                                        }
 
 
-                            }
+                                }
 
-                        Add-Autoreply
+                            Add-Autoreply
 
-                    }
-
-                Default { "You didn't enter an expect response, you idiot." }
-
-                N { Add-Autoreply }
-            }
+                        }
+                    Default { "You didn't enter an expect response, you idiot." }
+                    N { Add-Autoreply }
+                }
 
         }
     until ($script:removeDisitri -eq 'y' -or $script:removeDisitri -eq 'n')
 
 }
-
 # Prompts to add an auto response or not. NOT MIGRATED
 function Add-Autoreply {
     Do
     {
-        cls
+
+        Clear-Host
         print-TecharyLogo
         Write-Host "***************"
         Write-host "** Autoreply **"
         Write-host "***************"
         $script:autoreply = Read-Host "Do you want to add an auto-reply to $script:userobject.userprincipalname's mailbox? ( y / n / dog ) "
         Switch ($script:autoreply)
-        {
-            Y { $oof = Read-Host "Enter auto-reply"
+            {
+                Y {
 
-                try
-                    {
+                    $oof = Read-Host "Enter auto-reply"
+                    try
+                        {
 
-                        #Not supported in MGGraph yet
-                        Set-MailboxAutoReplyConfiguration -Identity $script:userobject.userprincipalname -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof" -ErrorAction stop
+                            #Not supported in MGGraph yet
+                            Set-MailboxAutoReplyConfiguration -Identity $script:userobject.userprincipalname -AutoReplyState Enabled -ExternalMessage "$oof" -InternalMessage "$oof" -ErrorAction stop
 
-                    }
-                catch
-                    {
-                        Write-output "Unable to set auto-reply"
-                        $_.exception
-                        $script:AutoReplyError = $true
+                        }
+                    catch
+                        {
+                            Write-output "Unable to set auto-reply"
+                            $_.exception
+                            $script:AutoReplyError = $true
 
-                    }
-                finally
-                    {
-                        if($null -eq $AutoReplyError)
-                            {
+                        }
+                    finally
+                        {
 
-                                write-host "Auto-reply added."
+                            if($null -eq $AutoReplyError)
+                                {
 
-                            }
+                                    write-host "Auto-reply added."
 
-                    }
+                                }
 
-                Add-MailboxPermissions
+                        }
 
-              }
-
-            N { Add-MailboxPermissions }
-
-            Default { "You didn't enter an expect response, you idiot." }
-
-            Dog {
-                    write-host "  __      _"
-                    write-host  "o'')}____//"
-                    write-host  " `_/      )"
-                    write-host  " (_(_/-(_/"
-                    start-sleep 5
-                    Add-Autoreply
+                    Add-MailboxPermissions
 
                 }
 
-        }
+                N { Add-MailboxPermissions }
+
+                Default { "You didn't enter an expect response, you idiot." }
+
+                Dog {
+                        write-host "  __      _"
+                        write-host  "o'')}____//"
+                        write-host  " `_/      )"
+                        write-host  " (_(_/-(_/"
+                        start-sleep 5
+                        Add-Autoreply
+
+                    }
+
+            }
 
         }
     until ($script:autoreply -eq 'y' -or $script:autoreply -eq 'n' -or $script:autoreply -eq 'Dog')
@@ -411,7 +419,7 @@ function Add-Autoreply {
 function Add-MailboxPermissions{
     Do
         {
-            cls
+            Clear-Host
             print-TecharyLogo
             Write-host "*************************"
             Write-host "** Mailbox Permissions **"
@@ -419,8 +427,9 @@ function Add-MailboxPermissions{
             $script:mailboxpermissions = Read-Host "Do you want anyone to have access to this mailbox? ( y / n ) "
             Switch ($script:mailboxpermissions)
                 {
-                    Y { $script:WhichUserPermissions = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
+                    Y {
 
+                        $script:WhichUserPermissions = Read-Host "Enter the E-mail address of the user that should have access to this mailbox "
                         if(Get-MsolUser -UserPrincipalName $script:WhichUserPermissions -ErrorAction SilentlyContinue)
                             {
 
@@ -458,13 +467,10 @@ function Add-MailboxPermissions{
                                 Add-MailboxPermissions
 
                             }
-
                         Add-MailboxForwarding
 
                      }
-
                     N {Add-MailboxForwarding}
-
                     Default { "You didn't enter an expect response, you idiot." }
                 }
         }
@@ -476,7 +482,7 @@ function Add-MailboxPermissions{
 function Add-MailboxForwarding{
     Do
         {
-            cls
+            Clear-Host
             print-TecharyLogo
             Write-host "*************************"
             Write-host "** Mailbox Forwarding **"
@@ -539,7 +545,7 @@ function Add-MailboxForwarding{
 
 function write-result {
 
-    clear
+    Clear-Host
     write-host "You have done the following:"
     switch ($script:UFLicences)
         {
@@ -566,7 +572,6 @@ function write-result {
                 }
 
         }
-
     switch ($script:RemovalException)
         {
 
@@ -638,15 +643,12 @@ function write-result {
                 }
 
         }
-
-
     if ($script:refreshTokenError -eq $true)
         {
 
             write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
 
         }
-
     write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
     Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
     pause
