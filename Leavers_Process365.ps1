@@ -106,7 +106,7 @@ function get-upn {
 function removeLicences {
 
     $AssignedLicences = (get-mguserlicenseDetail -userid $script:userObject.id)
-
+    $ProgressPreference = 'silentlycontinue'
     Invoke-WebRequest -uri https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv -outfile .\licences.csv | Out-Null
     $licences = import-csv .\licences.csv
     remove-item .\licences.csv -Force
@@ -143,7 +143,7 @@ function removeLicences {
             switch ($continue)
                 {
 
-                    Y {}
+                    Y {$script:NoLicence = 'y'}
                     N {write-result}
                     default {removeLicences}
 
@@ -152,8 +152,21 @@ function removeLicences {
         }
     else
         {
+            try
+                {
 
-            Set-MgUserLicense -userID $script:userObject.id -AddLicenses @() -RemoveLicenses @($Assignedlicences.skuid)
+                    Set-MgUserLicense -userID $script:userObject.id -AddLicenses @() -RemoveLicenses @($Assignedlicences.skuid)
+
+                }
+            catch
+                {
+
+                    $_.exception
+                    $script:LicenceRemovalError = $true
+
+                }
+
+
 
         }
 
@@ -196,6 +209,7 @@ function Set-NewPassword {
 
             write-output "Unable to set password"
             $_.exception
+            $script:SetPassswordError = $true
 
         }
 
@@ -547,11 +561,23 @@ function write-result {
 
     Clear-Host
     write-host "You have done the following:"
-    switch ($script:UFLicences)
+    switch ($script:LicenceRemovalError)
         {
 
-            $null {write-host -ForegroundColor Red "No licences have been removed from the account. Please manually review."}
-            default {write-host "`nRemoved the following licence(s):" ; $script:UFLicences}
+            $true {write-host -ForegroundColor Red "`nThere was an error attempting to removing the licences from this account. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            default
+                {
+
+
+                    switch ($script:NoLicence)
+                    {
+
+                        Y {write-host -ForegroundColor yellow "No licences were assigned to this account."}
+                        default {write-host "`nRemoved the following licence(s):" ; $script:UFLicences}
+
+                    }
+
+                }
 
         }
     switch ($script:GALError)
@@ -643,13 +669,20 @@ function write-result {
                 }
 
         }
-    if ($script:refreshTokenError -eq $true)
+    switch ($script:refreshTokenError)
         {
 
-            write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"
+            $true {write-host -ForegroundColor red "`nFailed to revoke the refresh tokens. Any current active sessions will remain active until autentication token expires"}
+            default {}
 
         }
-    write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"
+    switch ($script:SetPassswordError )
+        {
+
+            $true {write-host -ForegroundColor red "There was an error setting the password on this account. Please check the log at $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            default {write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"}
+
+        }
     Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
     pause
 
