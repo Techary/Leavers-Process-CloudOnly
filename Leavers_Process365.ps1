@@ -29,7 +29,7 @@ function connect-365 {
 
         Select-MgProfile -Name "beta"
         Connect-ExchangeOnline -ShowBanner:$false
-        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All"
+        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All","Directory.AccessAsUser.All"
 
         }
 
@@ -196,12 +196,13 @@ function get-newpassphrase {
 #Sets a the new password
 function Set-NewPassword {
 
-    $Script:NewCloudPassword = get-newpassphrase
+    $Script:NewCloudPassword = @{}
+    $Script:NewCloudPassword["Password"] = get-newpassphrase
+    $Script:NewCloudPassword["ForceChangePasswordNextSignIn"] = $false
     try
         {
 
-            $method = Get-MgUserAuthenticationPasswordMethod -UserId $script:userObject.id
-            Reset-MgUserAuthenticationMethodPassword -UserId $script:userObject.id -AuthenticationMethodId $method.id -NewPassword $Script:NewCloudPassword  -ErrorAction Stop
+            update-mguser -userid $script:userobject.id -passwordprofile $script:NewCloudPassword -ErrorAction Stop
 
         }
     catch
