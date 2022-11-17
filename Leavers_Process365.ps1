@@ -679,7 +679,7 @@ function write-result {
     switch ($script:SetPassswordError )
         {
 
-            $true {write-host -ForegroundColor red "There was an error setting the password on this account. Please check the log at $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {write-host -ForegroundColor red "`nThere was an error setting the password on this account. Please check the log at $psscriptroot\$($script:userobject.userprincipalname).txt"}
             default {write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"}
 
         }
@@ -718,6 +718,6 @@ while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyCo
 Set-NewPassword
 revoke-365Access
 Remove-GAL
-Disconnect-ExchangeOnline -Confirm:$false
-Disconnect-MgGraph
+Disconnect-ExchangeOnline -Confirm:$false | out-null
+Disconnect-MgGraph | out-null
 Stop-Transcript
