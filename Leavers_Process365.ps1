@@ -565,7 +565,7 @@ function write-result {
     switch ($script:LicenceRemovalError)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error attempting to removing the licences from this account. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error attempting to removing the licences from this account. Please review the log $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
@@ -584,7 +584,7 @@ function write-result {
     switch ($script:GALError)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error hiding from the GAL. Please review the log $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
@@ -602,7 +602,7 @@ function write-result {
     switch ($script:RemovalException)
         {
 
-            $true {write-host -ForegroundColor Red "`nThere was an error removing $($script:userobject.userprincipalname) from some distribution lists. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {write-host -ForegroundColor Red "`nThere was an error removing $($script:userobject.userprincipalname) from some distribution lists. Please review the log $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
@@ -620,7 +620,7 @@ function write-result {
     switch ($script:AutoReplyError)
         {
 
-            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {Write-host -ForegroundColor red "`nThere was an error adding the auto reply. Plese review the log $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
@@ -655,7 +655,7 @@ function write-result {
     switch ($script:ForwardingError)
         {
 
-            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {write-host -ForegroundColor red "`nThere was an error adding the email forwarding. Please review the log $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default
                 {
 
@@ -680,11 +680,11 @@ function write-result {
     switch ($script:SetPassswordError )
         {
 
-            $true {write-host -ForegroundColor red "`nThere was an error setting the password on this account. Please check the log at $psscriptroot\$($script:userobject.userprincipalname).txt"}
+            $true {write-host -ForegroundColor red "`nThere was an error setting the password on this account. Please check the log at $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default {write-host -ForegroundColor green "`nSet password to $($script:NewCloudPassword.password)"}
 
         }
-    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
+    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\logs\$($script:userobject.userprincipalname).txt"
     pause
 
 }
