@@ -316,7 +316,7 @@ function remove-distributionGroups {
     Do
         {
 
-            $script:removeDisitri = Read-Host "Do you want to remove $script:userobject.userprincipalname from all distribution groups ( y / n )?"
+            $script:removeDisitri = Read-Host "Do you want to remove $($script:userobject.userprincipalname) from all distribution groups ( y / n )?"
             Switch ($script:removeDisitri)
                 {
                     Y
@@ -374,7 +374,7 @@ function Add-Autoreply {
         Write-Host "***************"
         Write-host "** Autoreply **"
         Write-host "***************"
-        $script:autoreply = Read-Host "Do you want to add an auto-reply to $script:userobject.userprincipalname's mailbox? ( y / n / dog ) "
+        $script:autoreply = Read-Host "Do you want to add an auto-reply to $($script:userobject.userprincipalname)'s mailbox? ( y / n / dog ) "
         Switch ($script:autoreply)
             {
                 Y {
@@ -681,7 +681,7 @@ function write-result {
         {
 
             $true {write-host -ForegroundColor red "`nThere was an error setting the password on this account. Please check the log at $psscriptroot\$($script:userobject.userprincipalname).txt"}
-            default {write-host -ForegroundColor green "`nSet password to $script:NewCloudPassword"}
+            default {write-host -ForegroundColor green "`nSet password to $($script:NewCloudPassword.password)"}
 
         }
     Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
@@ -706,7 +706,18 @@ function CountDown() {
 print-TecharyLogo
 connect-365
 get-upn
-Start-Transcript "$psscriptroot\$($script:userobject.userprincipalname).txt"
+if (test-path "$psscriptroot\logs")
+    {
+
+
+    }
+else
+    {
+
+        new-item -path $psscriptroot -name "logs" -ItemType Directory
+
+    }
+Start-Transcript "$psscriptroot\logs\$($script:userobject.userprincipalname).txt"
 removeLicences
 write-host -nonewline "Converting mailbox, please wait..."
 Set-Mailbox $script:userobject.userprincipalname -Type Shared
