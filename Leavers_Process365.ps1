@@ -29,7 +29,7 @@ function connect-365 {
 
         Select-MgProfile -Name "beta"
         Connect-ExchangeOnline -ShowBanner:$false
-        disconnect-mggraph
+        disconnect-mggraph | out-null
         Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All","Directory.AccessAsUser.All" 
 
         }
