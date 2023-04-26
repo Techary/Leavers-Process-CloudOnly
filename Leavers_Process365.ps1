@@ -414,7 +414,7 @@ function Add-Autoreply {
         Write-Host "***************"
         Write-host "** Autoreply **"
         Write-host "***************"
-        $script:autoreply = Read-Host "Do you want to add an auto-reply to $($script:userobject.userprincipalname)'s mailbox? ( y / n / dog ) "
+        $script:autoreply = Read-Host "Do you want to add an auto-reply to $($script:userobject.userprincipalname)'s mailbox? Y will add a new OOF; N will turn off any pre-existing OOF; Leave won't make any changes but, will show you a good boy. ( y / n / leave ) "
         Switch ($script:autoreply)
             {
                 Y {
@@ -430,7 +430,7 @@ function Add-Autoreply {
                     catch
                         {
                             Write-output "Unable to set auto-reply"
-                            $_.exception[0]
+                            $_.exception
                             $script:AutoReplyError = $true
 
                         }
@@ -450,17 +450,17 @@ function Add-Autoreply {
 
                 }
 
-                N { Add-MailboxPermissions }
+                N { Set-MailboxAutoReplyConfiguration -Identity $script:userobject.userprincipalname -AutoReplyState Disabled }
 
                 Default { "You didn't enter an expect response, you idiot." }
 
-                Dog {
+                Leave {
                         write-host "  __      _"
                         write-host  "o'')}____//"
                         write-host  " `_/      )"
                         write-host  " (_(_/-(_/"
                         start-sleep 5
-                        Add-Autoreply
+
 
                     }
 
