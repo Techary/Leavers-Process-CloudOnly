@@ -29,7 +29,8 @@ function connect-365 {
 
         Select-MgProfile -Name "beta"
         Connect-ExchangeOnline -ShowBanner:$false
-        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All","Directory.AccessAsUser.All"
+        disconnect-mggraph | out-null
+        Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All","Directory.ReadWrite.All","UserAuthenticationMethod.Read.All","Directory.AccessAsUser.All" -ContextScope process
 
         }
 
@@ -161,7 +162,7 @@ function removeLicences {
             catch
                 {
 
-                    $_.exception
+                    $_.exception[0]
                     $script:LicenceRemovalError = $true
 
                 }
@@ -169,6 +170,45 @@ function removeLicences {
 
 
         }
+
+}
+
+function set-MailboxToShared {
+
+    if (get-mailbox $script:userobject.userprincipalname)
+        {
+
+            write-host -nonewline "Converting mailbox, please wait..."
+            try
+                {
+
+                    Set-Mailbox $script:userobject.userprincipalname -Type Shared -erroraction stop
+                    while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyContinue).RecipientTypeDetails -ne "SharedMailbox")
+                    {
+
+                        CountDown 1
+
+                    }
+
+                }
+            catch
+                {
+
+                    write-output "Unable to convert mailbox to shared"
+                    $_.exception[0]
+                    $script:ConversionFailure = $true
+
+                }
+
+        }
+    else
+        {
+
+            write-output "User does not have a mailbox, exiting to output..."
+            write-result
+
+        }
+
 
 }
 
@@ -209,7 +249,7 @@ function Set-NewPassword {
         {
 
             write-output "Unable to set password"
-            $_.exception
+            $_.exception[0]
             $script:SetPassswordError = $true
 
         }
@@ -229,7 +269,7 @@ function revoke-365Access {
         {
 
             write-output "Unable to remove refresh tokens"
-            $_.exception
+            $_.exception[0]
             $script:refreshTokenError = $true
 
         }
@@ -263,7 +303,7 @@ function Remove-GAL {
                                     {
 
                                         write-host "Unable to hide from GAL"
-                                        $_.exception
+                                        $_.exception[0]
                                         $script:GALError = $true
 
                                     }
@@ -336,7 +376,7 @@ function remove-distributionGroups {
                                         {
 
                                             Write-Output "Unable to remove from $($item.displayname)"
-                                            $_.exception
+                                            $_.exception[0]
                                             $script:RemovalException = $true
 
                                         }
@@ -420,8 +460,6 @@ function Add-Autoreply {
                         write-host  " `_/      )"
                         write-host  " (_(_/-(_/"
                         start-sleep 5
-                        
-
                     }
 
             }
@@ -458,7 +496,7 @@ function Add-MailboxPermissions{
                                     {
 
                                         write-output "Unable to add permissions"
-                                        $_.exception
+                                        $_.exception[0]
                                         $script:MailboxError = $true
 
                                     }
@@ -520,7 +558,7 @@ function Add-MailboxForwarding{
                                     {
 
                                         write-output "Unable to add permissions"
-                                        $_.exception
+                                        $_.exception[0]
                                         $script:ForwardingError = $true
 
                                     }
@@ -568,7 +606,6 @@ function write-result {
             $true {write-host -ForegroundColor Red "`nThere was an error attempting to removing the licences from this account. Please review the log $psscriptroot\logs\$($script:userobject.userprincipalname).txt"}
             default
                 {
-
 
                     switch ($script:NoLicence)
                     {
@@ -684,20 +721,38 @@ function write-result {
             default {write-host -ForegroundColor green "`nSet password to $($script:NewCloudPassword.password)"}
 
         }
-    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\logs\$($script:userobject.userprincipalname).txt"
+
+    switch ($script:ConversionFailure)
+        {
+
+            $true {write-host -ForegroundColor red "`nThere was an error converting the mailbox to shared. Please see the log in $psscriptroot\$($script:userobject.userprincipalname).txt"  }
+            Default {}
+
+        }
+    Write-Host "`nA transcript of all the actions taken in this script can be found at $psscriptroot\$($script:userobject.userprincipalname).txt"
     pause
 
 }
 
-# Adds a feature to call '...' when waiting
+# Adds a feature to call a spinning dial when waiting
 function CountDown() {
     param($timeSpan)
 
+    $spinner = @('|', '/', '-', '\')
+    $colors = @("Red", "DarkRed", "Magenta", "DarkMagenta", "Blue", "DarkBlue", "Cyan", "DarkCyan", "Green", "DarkGreen", "Yellow", "DarkYellow", "White", "Gray", "DarkGray", "Black")
+    $colorIndex = 0
+
     while ($timeSpan -gt 0)
         {
-            Write-Host '.' -NoNewline
+            foreach ($spin in $spinner) {
+                Write-Host "`r$spin" -NoNewline -ForegroundColor $colors[$colorIndex]
+                Start-Sleep -Milliseconds 90
+            }
+            $colorIndex++
+            if ($colorIndex -ge $colors.Length) {
+                $colorIndex = 0
+            }
             $timeSpan = $timeSpan - 1
-            Start-Sleep -Seconds 1
         }
 }
 
@@ -718,16 +773,9 @@ else
 
     }
 Start-Transcript "$psscriptroot\logs\$($script:userobject.userprincipalname).txt"
-removeLicences
-write-host -nonewline "Converting mailbox, please wait..."
-Set-Mailbox $script:userobject.userprincipalname -Type Shared
-while ((get-mailbox $script:userobject.userprincipalname -ErrorAction SilentlyContinue).RecipientTypeDetails -ne "SharedMailbox")
-    {
-
-        CountDown 1
-
-    }
 Set-NewPassword
+removeLicences
+set-MailboxToShared
 revoke-365Access
 Remove-GAL
 Disconnect-ExchangeOnline -Confirm:$false | out-null
