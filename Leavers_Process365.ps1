@@ -735,15 +735,25 @@ function write-result {
 
 }
 
-# Adds a feature to call '...' when waiting
+# Adds a feature to call a spinning dial when waiting
 function CountDown() {
     param($timeSpan)
 
+    $spinner = @('|', '/', '-', '\')
+    $colors = @('Red', 'Green', 'Yellow', 'Blue')
+    $colorIndex = 0
+
     while ($timeSpan -gt 0)
         {
-            Write-Host '.' -NoNewline
+            foreach ($spin in $spinner) {
+                Write-Host "`r$spin" -NoNewline -ForegroundColor $colors[$colorIndex]
+                Start-Sleep -Milliseconds 100
+            }
+            $colorIndex++
+            if ($colorIndex -ge $colors.Length) {
+                $colorIndex = 0
+            }
             $timeSpan = $timeSpan - 1
-            Start-Sleep -Seconds 1
         }
 }
 
