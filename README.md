@@ -1,4 +1,4 @@
-# Leavers_Process365 *BETA*
+# Leavers_Process365
 
 ### Converts a leavers mailbox to shared, removes the licence, asks if you want to:  
 1. Remove from GAL  
