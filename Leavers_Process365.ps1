@@ -740,14 +740,14 @@ function CountDown() {
     param($timeSpan)
 
     $spinner = @('|', '/', '-', '\')
-    $colors = @('Red', 'Green', 'Yellow', 'Blue')
+    $colors = @("Red", "DarkRed", "Magenta", "DarkMagenta", "Blue", "DarkBlue", "Cyan", "DarkCyan", "Green", "DarkGreen", "Yellow", "DarkYellow", "White", "Gray", "DarkGray", "Black")
     $colorIndex = 0
 
     while ($timeSpan -gt 0)
         {
             foreach ($spin in $spinner) {
                 Write-Host "`r$spin" -NoNewline -ForegroundColor $colors[$colorIndex]
-                Start-Sleep -Milliseconds 100
+                Start-Sleep -Milliseconds 90
             }
             $colorIndex++
             if ($colorIndex -ge $colors.Length) {
