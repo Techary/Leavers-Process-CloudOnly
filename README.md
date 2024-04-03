@@ -9,5 +9,4 @@
 
 ### How to use
 1. Download the .ps1 in this repo
-2a. Browse to the location you saved the file to, right click the file and select `open with powershell`.
-2b. Open a powershell window, and cd to the locatino you saved the file to. Run ./Leavers_process365 <email1>,<email2>
+2. Browse to the location you saved the file to, right click the file and select `open with powershell`.
