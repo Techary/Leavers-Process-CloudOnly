@@ -1,4 +1,5 @@
-# Leavers_Process365
+# Leavers-Process-CloudOnly
+*THIS IS ONLY FOR 365 WITH NO SYNC TO ON PREMISE DIRECTORY*
 
 ### Converts a leavers mailbox to shared, removes the licence, asks if you want to:  
 1. Remove from GAL  
